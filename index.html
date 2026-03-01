@@ -11,187 +11,201 @@
         .container { max-width: 1200px; margin: auto; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .group-card { background: #1c2128; border-left: 4px solid var(--blue); padding: 15px; margin-bottom: 15px; border-radius: 4px; }
-        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 4px; margin-right: 10px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-weight: bold; margin-right: 5px; transition: 0.3s; }
-        .btn-green { background: var(--green); }
-        .btn-red { background: var(--red); }
-        .btn-blue { background: var(--blue); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; font-size: 13px; }
-        th { background: #1c2128; color: var(--blue); }
-        .badge { background: var(--blue); color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 10px; font-weight: bold; }
+        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-blue { background: var(--blue); color: white; }
+        .btn-red { background: var(--red); color: white; }
+        .btn-action { padding: 5px 10px; font-size: 11px; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #333; font-size: 13px; }
+        .live-log { font-family: monospace; font-size: 12px; border-left: 3px solid var(--blue); padding: 5px; margin-bottom: 5px; background: #000; }
+        #mainPanel, #controlSection, #reportModal { display: none; }
+        #reportModal { position: fixed; top: 5%; left: 10%; width: 80%; height: 85%; background: var(--card); border: 2px solid var(--blue); z-index: 1000; padding: 20px; overflow-y: auto; border-radius: 10px; box-shadow: 0 0 50px #000; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <h2>🚀 m1portal Yönetim Merkezi</h2>
-        <div id="adminStatus">Doğrulanıyor...</div>
+    <div id="loginBox" class="card" style="max-width: 350px; margin: 100px auto; text-align: center;">
+        <h2>m1portal Giriş</h2>
+        <input type="text" id="user" placeholder="Kullanıcı Adı">
+        <input type="password" id="pass" placeholder="Şifre">
+        <button class="btn btn-blue" style="width:100%" onclick="login()">Giriş</button>
     </div>
 
-    <div class="card">
-        <h3>📩 Bekleyen Erişim İstekleri</h3>
-        <div id="requestList"></div>
-    </div>
-
-    <div class="card">
-        <h3>👥 Kayıtlı Kullanıcılar ve Cihazlar</h3>
-        <div id="userList"></div>
-    </div>
-
-    <div class="card" id="reportSection" style="display:none;">
-        <h3>📊 Detaylı İşlem Raporu: <span id="targetUserName"></span></h3>
-        <div style="margin-bottom: 15px;">
-            <select id="reportYear"><option value="2026">2026</option><option value="2025">2025</option></select>
-            <select id="reportMonth">
-                <option value="01">Ocak</option><option value="02">Şubat</option><option value="03">Mart</option>
-                <option value="04">Nisan</option><option value="05">Mayıs</option><option value="06">Haziran</option>
-                <option value="07">Temmuz</option><option value="08">Ağustos</option><option value="09">Eylül</option>
-                <option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option>
-            </select>
-            <button class="btn btn-blue" onclick="generateReport()">Raporu Getir</button>
+    <div id="mainPanel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>m1portal <small id="adminTag" style="color: var(--blue); font-size: 14px;"></small></h1>
+            <button class="btn btn-red" onclick="location.reload()">Çıkış</button>
         </div>
-        <div id="reportContent"></div>
+
+        <div class="card" id="controlSection" style="border-color: var(--blue);">
+            <h3>Sistem Kontrolü</h3>
+            <button class="btn btn-blue" onclick="toggleGlobalLock()">Genel Kilidi Aç/Kapat</button>
+            <span id="globalStatusText" style="margin-left: 15px; font-weight: bold;">...</span>
+        </div>
+
+        <div class="card">
+            <h3>Yeni İstekler</h3>
+            <div id="requestList">İstek yok.</div>
+        </div>
+
+        <div class="card">
+            <h3>Kullanıcı Grupları</h3>
+            <div id="treeContainer">Yükleniyor...</div>
+        </div>
+
+        <div class="card">
+            <h3>Anlık Trafik</h3>
+            <div id="liveTraffic" style="max-height: 200px; overflow-y: auto;"></div>
+        </div>
     </div>
 </div>
 
+<div id="reportModal">
+    <div style="display:flex; justify-content: space-between;">
+        <h2 id="reportTitle">Kullanıcı Raporu</h2>
+        <button class="btn btn-red" onclick="document.getElementById('reportModal').style.display='none'">Kapat</button>
+    </div>
+    <div style="display:flex; gap: 10px; margin: 20px 0;">
+        <select id="repYear"><option value="2026">2026</option></select>
+        <select id="repMonth">
+            <option value="01">Ocak</option><option value="02">Şubat</option><option value="03" selected>Mart</option>
+            <option value="04">Nisan</option><option value="05">Mayıs</option><option value="06">Haziran</option>
+        </select>
+        <button class="btn btn-blue" onclick="loadReport()">Raporu Getir</button>
+    </div>
+    <div id="reportContent">Tarih seçip butona basın.</div>
+</div>
+
 <script>
-    // --- FIREBASE AYARLARI ---
-    const firebaseConfig = {
-        databaseURL: "https://m1portal-default-rtdb.firebaseio.com" // Kendi URL'ni buraya yapıştır
-    };
+    const firebaseConfig = { databaseURL: "https://m1portalproject-default-rtdb.europe-west1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let sessionAdmin = prompt("Yönetici Anahtarı:");
-    let activeReportIp = "";
+    let sessionAdmin = "", sessionMyCode = "", sessionCanLock = false, activeReportIp = "";
 
-    if (sessionAdmin) {
-        db.ref("Admins").once("value", snap => {
-            const admins = snap.val();
-            let currentAdmin = null;
+    async function login() {
+        const u = document.getElementById("user").value.toLowerCase();
+        const p = document.getElementById("pass").value;
+        const snap = await db.ref("AdminUsers/" + u).once("value");
+        const data = snap.val();
 
-            // Orijinal Şifre Kontrolü (AdminPass ve SubPass desteği)
-            for (let id in admins) {
-                if (admins[id].AdminPass === sessionAdmin || (admins[id].SubPass && admins[id].SubPass === sessionAdmin)) {
-                    currentAdmin = admins[id];
-                    break;
-                }
-            }
-
-            if (currentAdmin) {
-                document.getElementById("adminStatus").innerText = "Hoş geldin, " + currentAdmin.AdminName;
-                loadDashboard(currentAdmin);
-            } else {
-                alert("Geçersiz anahtar!");
-                window.location.reload();
-            }
-        });
+        if (data && data.Pass === p) {
+            sessionAdmin = u; sessionMyCode = data.MyCode; sessionCanLock = data.CanLock;
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("mainPanel").style.display = "block";
+            document.getElementById("adminTag").innerText = `${u.charAt(0).toUpperCase() + u.slice(1)} (Admin)`;
+            if(sessionCanLock) document.getElementById("controlSection").style.display = "block";
+            initData();
+        } else { alert("Hata!"); }
     }
 
-    function loadDashboard(admin) {
-        // İstekler (Orijinal Mantık)
-        db.ref("Requests").on("value", snap => {
-            let html = "";
-            snap.forEach(child => {
-                const ip = child.key;
-                const data = child.val();
-                html += `<div class="group-card">
-                    <b>${data.UserName}</b> (${ip.replace(/_/g, '.')}) 
-                    <button class="btn btn-green" onclick="approve('${ip}', '${data.UserName}')">Onayla</button>
-                </div>`;
-            });
-            document.getElementById("requestList").innerHTML = html || "Yeni istek yok.";
+    function initData() {
+        db.ref("GlobalSettings/IsLocked").on('value', s => {
+            document.getElementById("globalStatusText").innerText = s.val() ? "🔴 KİLİTLİ" : "🟢 AKTİF";
         });
 
-        // Onaylılar (Orijinal Yetkilendirme Filtresi)
-        db.ref("AllowedIPs").on("value", snap => {
-            let html = "";
+        // İstekler
+        db.ref("Requests").on('value', snap => {
+            const list = document.getElementById("requestList"); list.innerHTML = "";
             snap.forEach(child => {
-                const ip = child.key;
-                const u = child.val();
+                const val = child.val();
+                if(!sessionCanLock && val.RefCode !== sessionMyCode) return;
+                list.innerHTML += `<div class="live-log">${val.User} (${val.RefCode}) <button class="btn btn-blue btn-action" onclick="approve('${child.key}','${val.User}')">Onayla</button></div>`;
+            });
+        });
+
+        // Ağaç Yapısı
+        db.ref("AllowedIPs").on('value', snap => {
+            const container = document.getElementById("treeContainer"); container.innerHTML = "";
+            let groups = {};
+            snap.forEach(child => {
+                const val = child.val();
+                if(!sessionCanLock && val.OwnerAdmin !== sessionAdmin) return;
+                if(!groups[val.OwnerAdmin]) groups[val.OwnerAdmin] = [];
+                groups[val.OwnerAdmin].push({ ip: child.key, ...val });
+            });
+
+            for (let owner in groups) {
+                // MAKYAJ: Süper adminse "FURKAN GRUBU", Sub-adminse "Kullanıcılar" yazar
+                let groupTitle = sessionCanLock ? `📁 ${owner.toUpperCase()} GRUBU` : `📁 Kullanıcılar`;
                 
-                // Sadece yetkili olduğu kullanıcıları görsün
-                if (admin.AdminPass === sessionAdmin || u.OwnerAdmin === admin.AdminName) {
-                    html += `<div class="group-card" style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <b>[${u.OwnerAdmin}]</b> <strong>${u.UserName}</strong> 
-                            <span id="ecz_${ip}" class="badge">Eczane: Bekleniyor...</span>
-                            <div style="font-size:12px; color:#8b949e; margin-top:5px;">IP: ${ip.replace(/_/g,'.')}</div>
-                        </div>
-                        <div>
-                            <button class="btn btn-blue" onclick="openReport('${ip}', '${u.UserName}')">Raporla</button>
-                            <button class="btn ${u.Status === 'Active' ? 'btn-red' : 'btn-green'}" onclick="toggleUser('${ip}', '${u.Status}')">
-                                ${u.Status === 'Active' ? 'Durdur' : 'Aktif Et'}
-                            </button>
-                        </div>
-                    </div>`;
-                    updateEczaneBadge(ip);
-                }
-            });
-            document.getElementById("userList").innerHTML = html || "Onaylı cihaz yok.";
-        });
-    }
-
-    function updateEczaneBadge(ip) {
-        db.ref("LiveTraffic/" + ip).on("value", snap => {
-            const data = snap.val();
-            const badge = document.getElementById("ecz_" + ip);
-            if(data && data.Eczane) {
-                badge.innerText = data.Eczane;
-                badge.style.background = "#238636"; badge.style.color = "#fff";
+                let html = `
+                <div class="group-card">
+                    <b>${groupTitle}</b>
+                    <table>
+                        ${groups[owner].map(u => {
+                            // MAKYAJ: Veritabanında Active/Passive kalsa da ekrana Aktif/Pasif basıyoruz
+                            let displayStatus = u.Status === 'Active' ? 'Aktif' : 'Pasif';
+                            return `
+                            <tr>
+                                <td>${u.UserName}</td>
+                                <td>${u.ip.replace(/_/g,'.')}</td>
+                                <td style="color:${u.Status==='Active'?'#3fb950':'#f85149'}">${displayStatus}</td>
+                                <td>
+                                    <button class="btn btn-blue btn-action" onclick="toggleUser('${u.ip}','${u.Status}')">Durum</button>
+                                    <button class="btn btn-blue btn-action" style="background:#f1c40f;color:black" onclick="openReport('${u.ip}','${u.UserName}')">📊 Rapor</button>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </table>
+                </div>`;
+                container.innerHTML += html;
             }
         });
-    }
 
-    function approve(ip, name) {
-        const adminName = document.getElementById("adminStatus").innerText.replace("Hoş geldin, ", "");
-        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: adminName, Status: "Active" });
-        db.ref("Requests/" + ip).remove();
-    }
-
-    function toggleUser(ip, cur) {
-        db.ref("AllowedIPs/" + ip + "/Status").set(cur === "Active" ? "Passive" : "Active");
+        // Canlı Trafik
+        db.ref("LiveTraffic").on('value', snap => {
+            const area = document.getElementById("liveTraffic"); area.innerHTML = "";
+            snap.forEach(node => {
+                const data = node.val();
+                area.innerHTML = `<div class="live-log"><b>${node.key.replace(/_/g,'.')}:</b> ${data.İlaç}</div>` + area.innerHTML;
+            });
+        });
     }
 
     function openReport(ip, name) {
         activeReportIp = ip;
-        document.getElementById("targetUserName").innerText = name;
-        document.getElementById("reportSection").style.display = "block";
-        window.scrollTo(0, document.body.scrollHeight);
+        document.getElementById("reportTitle").innerText = name + " - Geçmiş Kayıtlar";
+        document.getElementById("reportModal").style.display = "block";
+        loadReport();
     }
 
-    async function generateReport() {
-        const y = document.getElementById("reportYear").value;
-        const m = document.getElementById("reportMonth").value;
+    async function loadReport() {
+        const y = document.getElementById("repYear").value;
+        const m = document.getElementById("repMonth").value;
         const content = document.getElementById("reportContent");
-        content.innerHTML = "Sorgulanıyor...";
+        content.innerHTML = "Veriler taranıyor...";
 
         const snap = await db.ref(`Logs/${y}/${m}`).once("value");
-        if(!snap.exists()) { content.innerHTML = "Veri bulunamadı."; return; }
+        if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
 
-        let html = `<table><tr><th>Tarih/Saat</th><th>Eczane/GLN</th><th>İlaç/GTIN</th><th>Parti/SKT</th><th>Karekod</th></tr>`;
+        let html = `<table><tr><th>Tarih</th><th>Saat</th><th>İlaç</th><th>Karekod (SN)</th></tr>`;
         let totalCount = 0;
 
         snap.forEach(dayNode => {
+            const day = dayNode.key;
             const userLogs = dayNode.child(activeReportIp);
             if(userLogs.exists()) {
-                userLogs.forEach(entry => {
-                    const log = entry.val();
+                userLogs.forEach(logEntry => {
+                    const log = logEntry.val();
                     totalCount++;
-                    html += `<tr>
-                        <td>${dayNode.key}/${m}/${y}<br><small>${log.Zaman}</small></td>
-                        <td>${log.Eczane || '-'}<br><small>${log.GLN || ''}</small></td>
-                        <td>${log.İlaç}<br><small>GTIN: ${log.GTIN}</small></td>
-                        <td>P: ${log.Parti || '-'}<br>S: ${log.SKT || ''}</td>
-                        <td><code>${log.SN}</code></td>
-                    </tr>`;
+                    html += `<tr><td>${day}/${m}/${y}</td><td>${log.Zaman}</td><td>${log.İlaç}</td><td>${log.SN}</td></tr>`;
                 });
             }
         });
-        content.innerHTML = `<h3>Bu ay toplam ${totalCount} bildirim bulundu.</h3>` + html + `</table>`;
+
+        content.innerHTML = `<h3>Bu ay toplam ${totalCount} bildirim yapıldı.</h3>` + html + `</table>`;
     }
+
+    function approve(ip, name) {
+        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: sessionAdmin, Status: "Passive" });
+        db.ref("Requests/" + ip).remove();
+    }
+
+    function toggleUser(key, cur) { db.ref("AllowedIPs/" + key + "/Status").set(cur === "Active" ? "Passive" : "Active"); }
+    function toggleGlobalLock() { db.ref("GlobalSettings/IsLocked").once('value', s => db.ref("GlobalSettings/IsLocked").set(!s.val())); }
 </script>
 </body>
 </html>
