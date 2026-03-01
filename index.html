@@ -16,9 +16,8 @@
         .btn-green { background: var(--green); }
         .btn-red { background: var(--red); }
         .btn-blue { background: var(--blue); }
-        .btn:hover { opacity: 0.8; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; font-size: 14px; }
+        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; font-size: 13px; }
         th { background: #1c2128; color: var(--blue); }
         .badge { background: var(--blue); color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 10px; font-weight: bold; }
     </style>
@@ -28,7 +27,7 @@
 <div class="container">
     <div class="card">
         <h2>🚀 m1portal Yönetim Merkezi</h2>
-        <div id="adminStatus">Yönetici doğrulanıyor...</div>
+        <div id="adminStatus">Doğrulanıyor...</div>
     </div>
 
     <div class="card">
@@ -60,7 +59,7 @@
 <script>
     // --- FIREBASE AYARLARI ---
     const firebaseConfig = {
-        databaseURL: "BURAYA_KENDI_FIREBASE_URL_ADRESINI_YAZ"
+        databaseURL: "https://m1portal-default-rtdb.firebaseio.com" // Kendi URL'ni buraya yapıştır
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -73,6 +72,7 @@
             const admins = snap.val();
             let currentAdmin = null;
 
+            // Orijinal Şifre Kontrolü (AdminPass ve SubPass desteği)
             for (let id in admins) {
                 if (admins[id].AdminPass === sessionAdmin || (admins[id].SubPass && admins[id].SubPass === sessionAdmin)) {
                     currentAdmin = admins[id];
@@ -91,7 +91,7 @@
     }
 
     function loadDashboard(admin) {
-        // İstekleri Yükle
+        // İstekler (Orijinal Mantık)
         db.ref("Requests").on("value", snap => {
             let html = "";
             snap.forEach(child => {
@@ -105,20 +105,20 @@
             document.getElementById("requestList").innerHTML = html || "Yeni istek yok.";
         });
 
-        // Kullanıcıları Yükle (Admin yetkisine göre filtreli)
+        // Onaylılar (Orijinal Yetkilendirme Filtresi)
         db.ref("AllowedIPs").on("value", snap => {
             let html = "";
             snap.forEach(child => {
                 const ip = child.key;
                 const u = child.val();
                 
-                // Eğer ana admin değilse sadece kendi onayladıklarını görsün
+                // Sadece yetkili olduğu kullanıcıları görsün
                 if (admin.AdminPass === sessionAdmin || u.OwnerAdmin === admin.AdminName) {
                     html += `<div class="group-card" style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
                             <b>[${u.OwnerAdmin}]</b> <strong>${u.UserName}</strong> 
                             <span id="ecz_${ip}" class="badge">Eczane: Bekleniyor...</span>
-                            <div style="font-size:12px; color:#8b949e; margin-top:5px;">IP: ${ip.replace(/_/g,'.')} | Durum: ${u.Status}</div>
+                            <div style="font-size:12px; color:#8b949e; margin-top:5px;">IP: ${ip.replace(/_/g,'.')}</div>
                         </div>
                         <div>
                             <button class="btn btn-blue" onclick="openReport('${ip}', '${u.UserName}')">Raporla</button>
@@ -127,14 +127,14 @@
                             </button>
                         </div>
                     </div>`;
-                    fetchEczaneInfo(ip);
+                    updateEczaneBadge(ip);
                 }
             });
             document.getElementById("userList").innerHTML = html || "Onaylı cihaz yok.";
         });
     }
 
-    function fetchEczaneInfo(ip) {
+    function updateEczaneBadge(ip) {
         db.ref("LiveTraffic/" + ip).on("value", snap => {
             const data = snap.val();
             const badge = document.getElementById("ecz_" + ip);
@@ -146,7 +146,8 @@
     }
 
     function approve(ip, name) {
-        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: document.getElementById("adminStatus").innerText.replace("Hoş geldin, ", ""), Status: "Active" });
+        const adminName = document.getElementById("adminStatus").innerText.replace("Hoş geldin, ", "");
+        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: adminName, Status: "Active" });
         db.ref("Requests/" + ip).remove();
     }
 
@@ -165,10 +166,10 @@
         const y = document.getElementById("reportYear").value;
         const m = document.getElementById("reportMonth").value;
         const content = document.getElementById("reportContent");
-        content.innerHTML = "Veriler taranıyor...";
+        content.innerHTML = "Sorgulanıyor...";
 
         const snap = await db.ref(`Logs/${y}/${m}`).once("value");
-        if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
+        if(!snap.exists()) { content.innerHTML = "Veri bulunamadı."; return; }
 
         let html = `<table><tr><th>Tarih/Saat</th><th>Eczane/GLN</th><th>İlaç/GTIN</th><th>Parti/SKT</th><th>Karekod</th></tr>`;
         let totalCount = 0;
@@ -182,14 +183,14 @@
                     html += `<tr>
                         <td>${dayNode.key}/${m}/${y}<br><small>${log.Zaman}</small></td>
                         <td>${log.Eczane || '-'}<br><small>${log.GLN || ''}</small></td>
-                        <td>${log.İlaç}<br><small>${log.GTIN}</small></td>
+                        <td>${log.İlaç}<br><small>GTIN: ${log.GTIN}</small></td>
                         <td>P: ${log.Parti || '-'}<br>S: ${log.SKT || ''}</td>
                         <td><code>${log.SN}</code></td>
                     </tr>`;
                 });
             }
         });
-        content.innerHTML = `<h3>Toplam ${totalCount} işlem bulundu.</h3>` + html + `</table>`;
+        content.innerHTML = `<h3>Bu ay toplam ${totalCount} bildirim bulundu.</h3>` + html + `</table>`;
     }
 </script>
 </body>
