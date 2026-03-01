@@ -21,6 +21,7 @@
         .live-log { font-family: monospace; font-size: 12px; border-left: 3px solid var(--blue); padding: 5px; margin-bottom: 5px; background: #000; }
         #mainPanel, #controlSection, #reportModal { display: none; }
         #reportModal { position: fixed; top: 5%; left: 10%; width: 80%; height: 85%; background: var(--card); border: 2px solid var(--blue); z-index: 1000; padding: 20px; overflow-y: auto; border-radius: 10px; box-shadow: 0 0 50px #000; }
+        .eczane-badge { background:#30363d; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -128,7 +129,6 @@
             });
 
             for (let owner in groups) {
-                // MAKYAJ: Süper adminse "FURKAN GRUBU", Sub-adminse "Kullanıcılar" yazar
                 let groupTitle = sessionCanLock ? `📁 ${owner.toUpperCase()} GRUBU` : `📁 Kullanıcılar`;
                 
                 let html = `
@@ -136,11 +136,10 @@
                     <b>${groupTitle}</b>
                     <table>
                         ${groups[owner].map(u => {
-                            // MAKYAJ: Veritabanında Active/Passive kalsa da ekrana Aktif/Pasif basıyoruz
                             let displayStatus = u.Status === 'Active' ? 'Aktif' : 'Pasif';
                             return `
                             <tr>
-                                <td>${u.UserName}</td>
+                                <td>${u.UserName} <span id="ecz_${u.ip}" class="eczane-badge">Eczane Aranıyor...</span></td>
                                 <td>${u.ip.replace(/_/g,'.')}</td>
                                 <td style="color:${u.Status==='Active'?'#3fb950':'#f85149'}">${displayStatus}</td>
                                 <td>
@@ -155,12 +154,23 @@
             }
         });
 
-        // Canlı Trafik
+        // Canlı Trafik ve Eczane Rozetleri Güncellemesi
         db.ref("LiveTraffic").on('value', snap => {
             const area = document.getElementById("liveTraffic"); area.innerHTML = "";
             snap.forEach(node => {
                 const data = node.val();
-                area.innerHTML = `<div class="live-log"><b>${node.key.replace(/_/g,'.')}:</b> ${data.İlaç}</div>` + area.innerHTML;
+                const ip = node.key;
+                const eczaneName = data.Eczane || 'Bilinmeyen Eczane';
+                
+                // Anlık Trafik listesine Eczane adını ekle
+                area.innerHTML = `<div class="live-log"><b>${ip.replace(/_/g,'.')}:</b> ${data.İlaç} <span style="color:var(--green)">(${eczaneName})</span></div>` + area.innerHTML;
+                
+                // Tablodaki kullanıcı isminin yanındaki rozeti güncelle
+                const badge = document.getElementById("ecz_" + ip);
+                if(badge) {
+                    badge.innerText = eczaneName;
+                    badge.style.background = data.Eczane ? "#238636" : "#30363d";
+                }
             });
         });
     }
@@ -181,7 +191,8 @@
         const snap = await db.ref(`Logs/${y}/${m}`).once("value");
         if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
 
-        let html = `<table><tr><th>Tarih</th><th>Saat</th><th>İlaç</th><th>Karekod (SN)</th></tr>`;
+        // YENİ: Tablo başlıkları güncellendi
+        let html = `<table><tr><th>Tarih/Saat</th><th>Eczane / GLN</th><th>İlaç / GTIN</th><th>Parti / SKT</th><th>Karekod (SN)</th></tr>`;
         let totalCount = 0;
 
         snap.forEach(dayNode => {
@@ -191,12 +202,20 @@
                 userLogs.forEach(logEntry => {
                     const log = logEntry.val();
                     totalCount++;
-                    html += `<tr><td>${day}/${m}/${y}</td><td>${log.Zaman}</td><td>${log.İlaç}</td><td>${log.SN}</td></tr>`;
+                    
+                    // YENİ: Rapor satırları detaylandırıldı
+                    html += `<tr>
+                        <td>${day}/${m}/${y}<br><small style="color:#8b949e">${log.Zaman}</small></td>
+                        <td>${log.Eczane || '-'}<br><small style="color:#8b949e">${log.GLN || ''}</small></td>
+                        <td>${log.İlaç}<br><small style="color:#8b949e">GTIN: ${log.GTIN || ''}</small></td>
+                        <td>P: ${log.Parti || '-'}<br>S: ${log.SKT || '-'}</td>
+                        <td><code>${log.SN}</code></td>
+                    </tr>`;
                 });
             }
         });
 
-        content.innerHTML = `<h3>Bu ay toplam ${totalCount} bildirim yapıldı.</h3>` + html + `</table>`;
+        content.innerHTML = `<h3>Bu ay toplam ${totalCount} işlem yapıldı.</h3>` + html + `</table>`;
     }
 
     function approve(ip, name) {
