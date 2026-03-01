@@ -8,19 +8,19 @@
     <style>
         :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --red: #da3633; --border: #30363d; }
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1300px; margin: auto; }
+        .container { max-width: 1200px; margin: auto; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
         .group-card { background: #1c2128; border-left: 4px solid var(--blue); padding: 15px; margin-bottom: 15px; border-radius: 4px; }
-        h2, h3 { color: var(--blue); margin-top: 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid var(--border); padding: 10px; text-align: left; font-size: 13px; }
-        th { background: #0d1117; color: var(--blue); }
-        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-size: 12px; margin-right: 5px; }
+        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 8px; border-radius: 4px; margin-right: 10px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-weight: bold; margin-right: 5px; transition: 0.3s; }
         .btn-green { background: var(--green); }
         .btn-red { background: var(--red); }
         .btn-blue { background: var(--blue); }
-        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 6px; border-radius: 4px; }
-        .badge { background: var(--blue); color: #000; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 10px; font-weight: bold; }
+        .btn:hover { opacity: 0.8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid var(--border); padding: 12px; text-align: left; font-size: 14px; }
+        th { background: #1c2128; color: var(--blue); }
+        .badge { background: var(--blue); color: #000; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -28,22 +28,22 @@
 <div class="container">
     <div class="card">
         <h2>🚀 m1portal Yönetim Merkezi</h2>
-        <div id="status">Bağlanılıyor...</div>
+        <div id="adminStatus">Yönetici doğrulanıyor...</div>
     </div>
 
     <div class="card">
         <h3>📩 Bekleyen Erişim İstekleri</h3>
-        <div id="requestList">İstek yok.</div>
+        <div id="requestList"></div>
     </div>
 
     <div class="card">
-        <h3>👥 Onaylı Kullanıcılar</h3>
-        <div id="userList">Yükleniyor...</div>
+        <h3>👥 Kayıtlı Kullanıcılar ve Cihazlar</h3>
+        <div id="userList"></div>
     </div>
 
-    <div id="reportSection" class="card" style="display:none;">
-        <h3>📊 Detaylı Rapor: <span id="targetUser" style="color:#fff"></span></h3>
-        <div style="margin-bottom: 10px;">
+    <div class="card" id="reportSection" style="display:none;">
+        <h3>📊 Detaylı İşlem Raporu: <span id="targetUserName"></span></h3>
+        <div style="margin-bottom: 15px;">
             <select id="reportYear"><option value="2026">2026</option><option value="2025">2025</option></select>
             <select id="reportMonth">
                 <option value="01">Ocak</option><option value="02">Şubat</option><option value="03">Mart</option>
@@ -51,77 +51,102 @@
                 <option value="07">Temmuz</option><option value="08">Ağustos</option><option value="09">Eylül</option>
                 <option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option>
             </select>
-            <button class="btn btn-blue" onclick="generateReport()">Sorgula</button>
+            <button class="btn btn-blue" onclick="generateReport()">Raporu Getir</button>
         </div>
         <div id="reportContent"></div>
     </div>
 </div>
 
 <script>
-    const firebaseConfig = { databaseURL: "https://m1portal-default-rtdb.firebaseio.com" }; // Kendi URL'ni buraya yaz
+    // --- FIREBASE AYARLARI ---
+    const firebaseConfig = {
+        databaseURL: "BURAYA_KENDI_FIREBASE_URL_ADRESINI_YAZ"
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let activeReportIp = "";
     let sessionAdmin = prompt("Yönetici Anahtarı:");
+    let activeReportIp = "";
 
-    if(sessionAdmin) {
-        document.getElementById("status").innerText = "Yönetici: " + sessionAdmin;
-        init();
+    if (sessionAdmin) {
+        db.ref("Admins").once("value", snap => {
+            const admins = snap.val();
+            let currentAdmin = null;
+
+            for (let id in admins) {
+                if (admins[id].AdminPass === sessionAdmin || (admins[id].SubPass && admins[id].SubPass === sessionAdmin)) {
+                    currentAdmin = admins[id];
+                    break;
+                }
+            }
+
+            if (currentAdmin) {
+                document.getElementById("adminStatus").innerText = "Hoş geldin, " + currentAdmin.AdminName;
+                loadDashboard(currentAdmin);
+            } else {
+                alert("Geçersiz anahtar!");
+                window.location.reload();
+            }
+        });
     }
 
-    function init() {
-        // 1. BEKLEYEN İSTEKLERİ YÜKLE (ESKİ MANTIK)
+    function loadDashboard(admin) {
+        // İstekleri Yükle
         db.ref("Requests").on("value", snap => {
             let html = "";
             snap.forEach(child => {
                 const ip = child.key;
-                const name = child.val().UserName || "Adsız Cihaz";
+                const data = child.val();
                 html += `<div class="group-card">
-                    <b>${name}</b> (${ip.replace(/_/g,'.')}) 
-                    <button class="btn btn-green" onclick="approve('${ip}', '${name}')">Onayla</button>
+                    <b>${data.UserName}</b> (${ip.replace(/_/g, '.')}) 
+                    <button class="btn btn-green" onclick="approve('${ip}', '${data.UserName}')">Onayla</button>
                 </div>`;
             });
             document.getElementById("requestList").innerHTML = html || "Yeni istek yok.";
         });
 
-        // 2. ONAYLI KULLANICILARI YÜKLE
+        // Kullanıcıları Yükle (Admin yetkisine göre filtreli)
         db.ref("AllowedIPs").on("value", snap => {
             let html = "";
             snap.forEach(child => {
                 const ip = child.key;
                 const u = child.val();
-                html += `<div class="group-card" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <strong>${u.UserName}</strong> <span id="ecz_${ip}" class="badge">Eczane: Bekleniyor...</span>
-                        <div style="font-size:11px; color:#8b949e; margin-top:4px;">IP: ${ip.replace(/_/g,'.')} | Durum: ${u.Status}</div>
-                    </div>
-                    <div>
-                        <button class="btn btn-blue" onclick="openReport('${ip}', '${u.UserName}')">Raporla</button>
-                        <button class="btn ${u.Status === 'Active' ? 'btn-red' : 'btn-green'}" onclick="toggleUser('${ip}', '${u.Status}')">
-                            ${u.Status === 'Active' ? 'Durdur' : 'Aktif Et'}
-                        </button>
-                    </div>
-                </div>`;
-                fetchLastEczane(ip);
+                
+                // Eğer ana admin değilse sadece kendi onayladıklarını görsün
+                if (admin.AdminPass === sessionAdmin || u.OwnerAdmin === admin.AdminName) {
+                    html += `<div class="group-card" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <b>[${u.OwnerAdmin}]</b> <strong>${u.UserName}</strong> 
+                            <span id="ecz_${ip}" class="badge">Eczane: Bekleniyor...</span>
+                            <div style="font-size:12px; color:#8b949e; margin-top:5px;">IP: ${ip.replace(/_/g,'.')} | Durum: ${u.Status}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-blue" onclick="openReport('${ip}', '${u.UserName}')">Raporla</button>
+                            <button class="btn ${u.Status === 'Active' ? 'btn-red' : 'btn-green'}" onclick="toggleUser('${ip}', '${u.Status}')">
+                                ${u.Status === 'Active' ? 'Durdur' : 'Aktif Et'}
+                            </button>
+                        </div>
+                    </div>`;
+                    fetchEczaneInfo(ip);
+                }
             });
-            document.getElementById("userList").innerHTML = html || "Kullanıcı bulunamadı.";
+            document.getElementById("userList").innerHTML = html || "Onaylı cihaz yok.";
         });
     }
 
-    function fetchLastEczane(ip) {
+    function fetchEczaneInfo(ip) {
         db.ref("LiveTraffic/" + ip).on("value", snap => {
             const data = snap.val();
-            const el = document.getElementById("ecz_" + ip);
+            const badge = document.getElementById("ecz_" + ip);
             if(data && data.Eczane) {
-                el.innerText = data.Eczane;
-                el.style.background = "#238636"; el.style.color = "#fff";
+                badge.innerText = data.Eczane;
+                badge.style.background = "#238636"; badge.style.color = "#fff";
             }
         });
     }
 
     function approve(ip, name) {
-        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: sessionAdmin, Status: "Active" });
+        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: document.getElementById("adminStatus").innerText.replace("Hoş geldin, ", ""), Status: "Active" });
         db.ref("Requests/" + ip).remove();
     }
 
@@ -131,7 +156,7 @@
 
     function openReport(ip, name) {
         activeReportIp = ip;
-        document.getElementById("targetUser").innerText = name;
+        document.getElementById("targetUserName").innerText = name;
         document.getElementById("reportSection").style.display = "block";
         window.scrollTo(0, document.body.scrollHeight);
     }
@@ -139,23 +164,23 @@
     async function generateReport() {
         const y = document.getElementById("reportYear").value;
         const m = document.getElementById("reportMonth").value;
-        const div = document.getElementById("reportContent");
-        div.innerHTML = "Sorgulanıyor...";
+        const content = document.getElementById("reportContent");
+        content.innerHTML = "Veriler taranıyor...";
 
         const snap = await db.ref(`Logs/${y}/${m}`).once("value");
-        if(!snap.exists()) { div.innerHTML = "Veri bulunamadı."; return; }
+        if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
 
-        let html = `<table><tr><th>Tarih/Saat</th><th>Eczane / GLN</th><th>İlaç / GTIN</th><th>Parti / SKT</th><th>Karekod</th></tr>`;
-        let count = 0;
+        let html = `<table><tr><th>Tarih/Saat</th><th>Eczane/GLN</th><th>İlaç/GTIN</th><th>Parti/SKT</th><th>Karekod</th></tr>`;
+        let totalCount = 0;
 
         snap.forEach(dayNode => {
             const userLogs = dayNode.child(activeReportIp);
             if(userLogs.exists()) {
                 userLogs.forEach(entry => {
                     const log = entry.val();
-                    count++;
+                    totalCount++;
                     html += `<tr>
-                        <td>${dayNode.key}/${m}<br><small>${log.Zaman}</small></td>
+                        <td>${dayNode.key}/${m}/${y}<br><small>${log.Zaman}</small></td>
                         <td>${log.Eczane || '-'}<br><small>${log.GLN || ''}</small></td>
                         <td>${log.İlaç}<br><small>${log.GTIN}</small></td>
                         <td>P: ${log.Parti || '-'}<br>S: ${log.SKT || ''}</td>
@@ -164,7 +189,7 @@
                 });
             }
         });
-        div.innerHTML = `<h4>Bu ay toplam ${count} kayıt bulundu.</h4>` + html + "</table>";
+        content.innerHTML = `<h3>Toplam ${totalCount} işlem bulundu.</h3>` + html + `</table>`;
     }
 </script>
 </body>
