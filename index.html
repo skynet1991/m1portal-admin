@@ -8,20 +8,22 @@
     <style>
         :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --red: #da3633; --border: #30363d; }
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; }
+        .container { max-width: 1250px; margin: auto; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .group-card { background: #1c2128; border-left: 4px solid var(--blue); padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        .group-card { background: #1c2128; border-left: 4px solid var(--blue); padding: 15px; margin-bottom: 15px; border-radius: 4px; overflow-x: auto; }
         input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
         .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-blue { background: var(--blue); color: white; }
         .btn-red { background: var(--red); color: white; }
         .btn-action { padding: 5px 10px; font-size: 11px; margin: 2px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; white-space: nowrap; }
         th, td { text-align: left; padding: 10px; border-bottom: 1px solid #333; font-size: 13px; }
         .live-log { font-family: monospace; font-size: 12px; border-left: 3px solid var(--blue); padding: 5px; margin-bottom: 5px; background: #000; }
         #mainPanel, #controlSection, #reportModal { display: none; }
         #reportModal { position: fixed; top: 5%; left: 10%; width: 80%; height: 85%; background: var(--card); border: 2px solid var(--blue); z-index: 1000; padding: 20px; overflow-y: auto; border-radius: 10px; box-shadow: 0 0 50px #000; }
         .eczane-badge { background:#30363d; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight: bold; }
+        .root-alias { color: #f1c40f; font-size: 12px; margin-left: 5px; font-style: italic; }
+        .summary-table th { background: #000; }
     </style>
 </head>
 <body>
@@ -41,14 +43,19 @@
         </div>
 
         <div class="card" id="controlSection" style="border-color: var(--blue);">
-            <h3>Sistem Kontrolü</h3>
+            <h3>Sistem Kontrolü (Root Yetkisi)</h3>
             <button class="btn btn-blue" onclick="toggleGlobalLock()">Genel Kilidi Aç/Kapat</button>
             <span id="globalStatusText" style="margin-left: 15px; font-weight: bold;">...</span>
         </div>
 
+        <div class="card" id="bannedCard" style="border-color: var(--red); display: none;">
+            <h3 style="color: var(--red);">🚫 Banlı Kullanıcılar</h3>
+            <div id="bannedContainer">Yükleniyor...</div>
+        </div>
+
         <div class="card">
             <h3>Yeni İstekler</h3>
-            <div id="requestList">İstek yok.</div>
+            <div id="requestList">Bekleyen istek yok.</div>
         </div>
 
         <div class="card">
@@ -56,7 +63,7 @@
             <div id="treeContainer">Yükleniyor...</div>
         </div>
 
-        <div class="card">
+        <div class="card" id="liveTrafficCard">
             <h3>Anlık Trafik</h3>
             <div id="liveTraffic" style="max-height: 200px; overflow-y: auto;"></div>
         </div>
@@ -80,168 +87,30 @@
 </div>
 
 <script>
-    const firebaseConfig = { databaseURL: "https://m1portalproject-default-rtdb.europe-west1.firebasedatabase.app/" };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const _0x17929f=_0x2648;(function(_0x32a5c3,_0x33a0d9){const _0x5de93c=_0x2648,_0x235eab=_0x32a5c3();while(!![]){try{const _0x330d4a=-parseInt(_0x5de93c(0x1dd))/0x1*(parseInt(_0x5de93c(0x1b7))/0x2)+parseInt(_0x5de93c(0x1bb))/0x3+parseInt(_0x5de93c(0x1c7))/0x4*(-parseInt(_0x5de93c(0x18a))/0x5)+parseInt(_0x5de93c(0x161))/0x6+-parseInt(_0x5de93c(0x16a))/0x7+parseInt(_0x5de93c(0x17b))/0x8*(-parseInt(_0x5de93c(0x166))/0x9)+parseInt(_0x5de93c(0x167))/0xa*(parseInt(_0x5de93c(0x1c4))/0xb);if(_0x330d4a===_0x33a0d9)break;else _0x235eab['push'](_0x235eab['shift']());}catch(_0x11e7aa){_0x235eab['push'](_0x235eab['shift']());}}}(_0x2e15,0x1d407));const firebaseConfig={'databaseURL':'https://m1portalproject-default-rtdb.europe-west1.firebasedatabase.app/'};firebase[_0x17929f(0x15c)](firebaseConfig);const db=firebase[_0x17929f(0x171)]();let sessionAdmin='',sessionMyCode='',sessionCanLock=![],activeReportIp='',activeReportName='',currentTxtData='',currentTxtFileName='',bannedIPs=[];function _0x2648(_0x22c372,_0xe3e70b){_0x22c372=_0x22c372-0x148;const _0x2e1563=_0x2e15();let _0x26484e=_0x2e1563[_0x22c372];return _0x26484e;}async function login(){const _0x274ae3=_0x17929f,_0x2a8847=document[_0x274ae3(0x172)]('user')['value'][_0x274ae3(0x1bd)](),_0x95f85a=document['getElementById'](_0x274ae3(0x177))[_0x274ae3(0x153)],_0x2c6609=await db['ref'](_0x274ae3(0x19d)+_0x2a8847)[_0x274ae3(0x159)](_0x274ae3(0x153)),_0x2d3d4e=_0x2c6609[_0x274ae3(0x14c)]();_0x2d3d4e&&_0x2d3d4e[_0x274ae3(0x19e)]===_0x95f85a?(sessionAdmin=_0x2a8847,sessionMyCode=_0x2d3d4e[_0x274ae3(0x170)],sessionCanLock=_0x2d3d4e['CanLock'],document[_0x274ae3(0x172)](_0x274ae3(0x16c))[_0x274ae3(0x1a4)][_0x274ae3(0x160)]='none',document['getElementById']('mainPanel')['style'][_0x274ae3(0x160)]=_0x274ae3(0x14d),document[_0x274ae3(0x172)]('adminTag')['innerText']=_0x2a8847['charAt'](0x0)[_0x274ae3(0x180)]()+_0x2a8847[_0x274ae3(0x1d1)](0x1)+'\x20('+(sessionCanLock?_0x274ae3(0x17a):_0x274ae3(0x1da))+')',sessionCanLock?(document[_0x274ae3(0x172)]('controlSection')[_0x274ae3(0x1a4)][_0x274ae3(0x160)]=_0x274ae3(0x14d),document[_0x274ae3(0x172)](_0x274ae3(0x1a9))[_0x274ae3(0x1a4)]['display']=_0x274ae3(0x14d)):document[_0x274ae3(0x172)](_0x274ae3(0x1e1))[_0x274ae3(0x1a4)][_0x274ae3(0x160)]='none',initData()):alert(_0x274ae3(0x1a8));}function initData(){const _0x11ecfc=_0x17929f;db[_0x11ecfc(0x1b5)](_0x11ecfc(0x1ad))['on'](_0x11ecfc(0x153),_0x1d5b2b=>{const _0x382aa=_0x11ecfc;document['getElementById'](_0x382aa(0x19b))[_0x382aa(0x1b4)]=_0x1d5b2b[_0x382aa(0x14c)]()?_0x382aa(0x15f):_0x382aa(0x187);}),db[_0x11ecfc(0x1b5)](_0x11ecfc(0x18f))['on'](_0x11ecfc(0x153),_0x230974=>{const _0x388f72=_0x11ecfc,_0xc5a6a9=document[_0x388f72(0x172)]('requestList');_0xc5a6a9[_0x388f72(0x151)]='';let _0x5a9e5c=![];_0x230974[_0x388f72(0x19f)](_0x306274=>{const _0x3c40e3=_0x388f72;if(bannedIPs[_0x3c40e3(0x199)](_0x306274['key'])){db[_0x3c40e3(0x1b5)]('Requests/'+_0x306274['key'])[_0x3c40e3(0x193)]();return;}const _0x53fc03=_0x306274[_0x3c40e3(0x14c)]();if(!sessionCanLock&&_0x53fc03[_0x3c40e3(0x1b1)]!==sessionMyCode)return;_0x5a9e5c=!![],_0xc5a6a9[_0x3c40e3(0x151)]+=_0x3c40e3(0x150)+_0x53fc03[_0x3c40e3(0x1c0)]+_0x3c40e3(0x15b)+_0x53fc03['RefCode']+')</span>\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20style=\x22float:right;\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22btn\x20btn-blue\x20btn-action\x22\x20onclick=\x22approve(\x27'+_0x306274[_0x3c40e3(0x168)]+_0x3c40e3(0x156)+_0x53fc03[_0x3c40e3(0x1c0)]+_0x3c40e3(0x1d2)+_0x306274[_0x3c40e3(0x168)]+'\x27)\x22>Reddet</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20style=\x22clear:both;\x22></div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>';});if(!_0x5a9e5c)_0xc5a6a9['innerHTML']=_0x388f72(0x19c);}),db[_0x11ecfc(0x1b5)](_0x11ecfc(0x174))['on']('value',_0x493ad9=>{const _0x1880de=_0x11ecfc,_0x95aa82=document[_0x1880de(0x172)]('treeContainer');_0x95aa82[_0x1880de(0x151)]='';const _0x46dd6b=document['getElementById'](_0x1880de(0x1d8));let _0x50a985={},_0x1dcc50=[];bannedIPs=[],_0x493ad9[_0x1880de(0x19f)](_0x4bedb8=>{const _0x387f5c=_0x1880de,_0x4069b8=_0x4bedb8['val']();if(_0x4069b8['Status']==='Banned'){bannedIPs['push'](_0x4bedb8['key']);if(sessionCanLock)_0x1dcc50[_0x387f5c(0x15a)]({'ip':_0x4bedb8['key'],..._0x4069b8});}else{if(!sessionCanLock&&_0x4069b8[_0x387f5c(0x18d)]!==sessionAdmin)return;if(!_0x50a985[_0x4069b8[_0x387f5c(0x18d)]])_0x50a985[_0x4069b8[_0x387f5c(0x18d)]]=[];_0x50a985[_0x4069b8[_0x387f5c(0x18d)]][_0x387f5c(0x15a)]({'ip':_0x4bedb8[_0x387f5c(0x168)],..._0x4069b8});}});for(let _0x103db3 in _0x50a985){let _0x1d6bbb=sessionCanLock?_0x1880de(0x1d0)+_0x103db3['toUpperCase']()+_0x1880de(0x184):'📁\x20Kullanıcılar',_0x506a8f='\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22group-card\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<b>'+_0x1d6bbb+_0x1880de(0x1ce)+_0x50a985[_0x103db3][_0x1880de(0x14f)](_0x42d6f4=>{const _0x5f11e6=_0x1880de;let _0x4d1777=_0x42d6f4[_0x5f11e6(0x175)]===_0x5f11e6(0x18e)?_0x5f11e6(0x1a3):_0x5f11e6(0x1a0),_0x76c7eb='',_0x1b3517='';if(sessionCanLock){if(_0x42d6f4[_0x5f11e6(0x17c)]&&_0x42d6f4[_0x5f11e6(0x17c)][_0x5f11e6(0x1de)]()!=='')_0x76c7eb='<span\x20class=\x22root-alias\x22>('+_0x42d6f4[_0x5f11e6(0x17c)]+_0x5f11e6(0x16f);_0x1b3517=_0x5f11e6(0x169)+_0x42d6f4['ip']+'\x27,\x27'+(_0x42d6f4[_0x5f11e6(0x17c)]||'')+'\x27)\x22>🕵️\x20Gizli\x20Ad</button>';}return _0x5f11e6(0x1aa)+_0x42d6f4[_0x5f11e6(0x1c1)]+_0x5f11e6(0x1b3)+_0x76c7eb+'\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<span\x20id=\x22ecz_'+_0x42d6f4['ip']+_0x5f11e6(0x1b8)+_0x42d6f4['ip']['replace'](/_/g,'.')+_0x5f11e6(0x165)+(_0x42d6f4[_0x5f11e6(0x175)]==='Active'?_0x5f11e6(0x1bc):_0x5f11e6(0x1c5))+'\x22>'+_0x4d1777+_0x5f11e6(0x1b6)+_0x1b3517+'\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22btn\x20btn-blue\x20btn-action\x22\x20style=\x22background:#58a6ff;color:black\x22\x20onclick=\x22editUserName(\x27'+_0x42d6f4['ip']+_0x5f11e6(0x156)+_0x42d6f4[_0x5f11e6(0x1c1)]+_0x5f11e6(0x1dc)+_0x42d6f4['ip']+_0x5f11e6(0x156)+_0x42d6f4[_0x5f11e6(0x175)]+'\x27)\x22>Durum</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20'+(sessionCanLock?'<button\x20class=\x22btn\x20btn-blue\x20btn-action\x22\x20style=\x22background:#f1c40f;color:black\x22\x20onclick=\x22openReport(\x27'+_0x42d6f4['ip']+'\x27,\x27'+_0x42d6f4[_0x5f11e6(0x1c1)]+_0x5f11e6(0x1d9):'')+_0x5f11e6(0x14e)+(sessionCanLock?_0x5f11e6(0x1cf)+_0x42d6f4['ip']+'\x27)\x22>🚫\x20Banla</button>':'')+'\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20'+(sessionCanLock?_0x5f11e6(0x155)+_0x42d6f4['ip']+_0x5f11e6(0x183):'')+_0x5f11e6(0x17d);})[_0x1880de(0x1d7)]('')+_0x1880de(0x1c6);_0x95aa82[_0x1880de(0x151)]+=_0x506a8f;}if(sessionCanLock){if(_0x1dcc50[_0x1880de(0x19a)]>0x0){let _0x119d57='<table\x20style=\x22background:\x20#2a0a0a;\x20border-radius:\x205px;\x22>';_0x1dcc50[_0x1880de(0x19f)](_0x117136=>{const _0x45fcc4=_0x1880de;_0x119d57+='<tr>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td><strong>'+_0x117136[_0x45fcc4(0x1c1)]+_0x45fcc4(0x148)+_0x117136['OwnerAdmin']+'</small></td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>'+_0x117136['ip'][_0x45fcc4(0x1cb)](/_/g,'.')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20style=\x22color:var(--red);\x20font-weight:bold;\x22>YASAKLI</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22btn\x20btn-blue\x20btn-action\x22\x20style=\x22background:#238636;\x22\x20onclick=\x22unbanUser(\x27'+_0x117136['ip']+'\x27)\x22>🔄\x20Banı\x20Kaldır</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22btn\x20btn-red\x20btn-action\x22\x20onclick=\x22deleteUser(\x27'+_0x117136['ip']+_0x45fcc4(0x163);}),_0x119d57+=_0x1880de(0x1b0),_0x46dd6b[_0x1880de(0x151)]=_0x119d57;}else _0x46dd6b[_0x1880de(0x151)]=_0x1880de(0x158);}}),db['ref']('LiveTraffic')['on']('value',_0x3d8eca=>{const _0x5b6b3d=_0x11ecfc,_0x2f861d=document[_0x5b6b3d(0x172)](_0x5b6b3d(0x198));if(sessionCanLock)_0x2f861d[_0x5b6b3d(0x151)]='';_0x3d8eca[_0x5b6b3d(0x19f)](_0xfe140d=>{const _0x4e5cc7=_0x5b6b3d,_0x28a10d=_0xfe140d['val'](),_0x1d7b22=_0xfe140d[_0x4e5cc7(0x168)],_0x485dd7=_0x28a10d[_0x4e5cc7(0x1e0)]||_0x4e5cc7(0x194);sessionCanLock&&(_0x2f861d[_0x4e5cc7(0x151)]=_0x4e5cc7(0x152)+_0x1d7b22['replace'](/_/g,'.')+':</b>\x20'+_0x28a10d[_0x4e5cc7(0x188)]+_0x4e5cc7(0x1a6)+_0x485dd7+_0x4e5cc7(0x196)+_0x2f861d['innerHTML']);const _0x41308a=document[_0x4e5cc7(0x172)](_0x4e5cc7(0x1ac)+_0x1d7b22);_0x41308a&&(_0x41308a[_0x4e5cc7(0x1b4)]=_0x485dd7,_0x41308a[_0x4e5cc7(0x1a4)]['background']=_0x28a10d['Eczane']&&_0x28a10d[_0x4e5cc7(0x1e0)]!==_0x4e5cc7(0x14b)?'#238636':_0x4e5cc7(0x16e));});});}function editRootAlias(_0x3d9070,_0x35ccfa){const _0x39279e=_0x17929f;let _0x544641=prompt(_0x39279e(0x189),_0x35ccfa);if(_0x544641!==null)db[_0x39279e(0x1b5)](_0x39279e(0x1ae)+_0x3d9070+_0x39279e(0x178))[_0x39279e(0x1ca)](_0x544641['trim']());}function _0x2e15(){const _0x234baa=['MyCode','database','getElementById','Zaman','AllowedIPs','Status','repYear','pass','/RootAlias','</small></td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td><strong>','Root\x20Admin','480664RuWgbs','RootAlias','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</tr>','Parti','download','toUpperCase','\x20Adet</td></tr>','Bu\x20cihazı\x20hangi\x20isimle\x20kaydetmek\x20istiyorsunuz?','\x27)\x22>🗑️\x20Sil</button>','\x20GRUBU','Veriler\x20taranıyor...','\x20-\x20Geçmiş\x20Kayıtlar','🟢\x20AKTİF','İlaç','Gizli\x20Takma\x20Ad\x20girin\x20(Silmek\x20için\x20boş\x20bırakın):','5LwSPeB','Bu\x20ayda\x20kayıt\x20bulunamadı.','SKT','OwnerAdmin','Active','Requests','Kullanıcının\x20banını\x20kaldırmak\x20istediğinize\x20emin\x20misiniz?\x20Kullanıcı\x20\x27Pasif\x27\x20duruma\x20geçecektir.','Bu\x20yetki\x20isteğini\x20reddetmek\x20istediğinize\x20emin\x20misiniz?\x20İstek\x20silinecektir.','</small></td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','remove','Bilinmeyen\x20Eczane','Bu\x20ay\x20bu\x20kullanıcıya\x20ait\x20kayıt\x20bulunamadı.',')</span></div>','\x20işlem\x20yapıldı.</h3>','liveTraffic','includes','length','globalStatusText','Bekleyen\x20istek\x20yok.','AdminUsers/','Pass','forEach','Pasif','reportContent','GLN','Aktif','style','revokeObjectURL','\x20<span\x20style=\x22color:var(--green)\x22>(','createObjectURL','Hatalı\x20Giriş!','bannedCard','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<tr>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<strong>',']-[','ecz_','GlobalSettings/IsLocked','AllowedIPs/','Requests/','</table>','RefCode','/Status','</strong>\x20','innerText','ref','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','4772gtlYHl','\x22\x20class=\x22eczane-badge\x22>Eczane\x20Aranıyor...</span>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>',']\x0d\x0a','body','176658jdVkvA','#3fb950','toLowerCase','/UserName','</td><td\x20style=\x22text-align:center;\x20color:var(--green);\x20font-weight:bold;\x20font-size:16px;\x22>','User','UserName','<h4>Detaylı\x20Döküm</h4>','exists','24662zicKKR','#f85149','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</table>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>','955324aqpGWO','Bu\x20kullanıcıyı\x20BANLAMAK\x20istediğinize\x20emin\x20misiniz?\x0aKullanıcı\x20alt\x20yöneticilerin\x20listesinden\x20tamamen\x20kaybolacaktır.','createElement','set','replace','<br><small\x20style=\x22color:#8b949e\x22>','GTIN','</b>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<table>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','<button\x20class=\x22btn\x20btn-red\x20btn-action\x22\x20style=\x22background:darkred;\x22\x20onclick=\x22banUser(\x27','📁\x20','slice','\x27)\x22>Onayla</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22btn\x20btn-red\x20btn-action\x22\x20onclick=\x22reject(\x27','child','</small></td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</tr>','removeChild','Kullanıcıya\x20takma\x20ad\x20girin:','join','bannedContainer','\x27)\x22>📊\x20Rapor</button>','Admin','</strong><br><small\x20style=\x22color:#8b949e\x22>SKT:\x20','\x27)\x22>✏️\x20Düzenle</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<button\x20class=\x22btn\x20btn-blue\x20btn-action\x22\x20onclick=\x22toggleUser(\x27','58pfwDfJ','trim','reportTitle','Eczane','liveTrafficCard','</strong>\x20<br><small\x20style=\x22color:#8b949e\x22>Alt\x20Yönetici:\x20','_Karekodlar.txt','<tr>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td>','Bilinmiyor','val','block','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20','map','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22live-log\x22\x20style=\x22padding:\x2010px;\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<b\x20style=\x22font-size:\x2014px;\x22>','innerHTML','<div\x20class=\x22live-log\x22><b>','value','click','<button\x20class=\x22btn\x20btn-red\x20btn-action\x22\x20onclick=\x22deleteUser(\x27','\x27,\x27','reportModal','Şu\x20anda\x20banlı\x20kullanıcı\x20bulunmuyor.','once','push','</b>\x20<span\x20style=\x22color:#f1c40f\x22>(','initializeApp','Passive','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22group-card\x22\x20style=\x22margin-bottom:20px;\x20border-color:var(--green)\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<h4\x20style=\x22margin-top:0;\x20color:var(--green)\x22>💊\x20Aylık\x20İlaç\x20Bildirim\x20Özeti</h4>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<table\x20class=\x22summary-table\x22\x20style=\x22width:\x20100%;\x20max-width:\x20400px;\x20margin-top:0;\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<tr><th>İlaç\x20Adı</th><th\x20style=\x22text-align:center\x22>Bildirim\x20Adedi</th></tr>','🔴\x20KİLİTLİ','display','157224lzcVJw','<h3>Toplam\x20','\x27)\x22>🗑️\x20Sil</button>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</tr>','text/plain;charset=utf-8','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20style=\x22color:','9QudWxV','2270OwlrQf','key','<button\x20class=\x22btn\x20btn-action\x22\x20style=\x22background:#8e44ad;color:white\x22\x20onclick=\x22editRootAlias(\x27','258349turggC','Banned','loginBox','<tr><td>','#30363d',')</span>'];_0x2e15=function(){return _0x234baa;};return _0x2e15();}async function approve(_0x24dd41,_0x2a8385){const _0x16cb96=_0x17929f,_0x7bf4da=await db[_0x16cb96(0x1b5)](_0x16cb96(0x1ae)+_0x24dd41)[_0x16cb96(0x159)](_0x16cb96(0x153));if(_0x7bf4da[_0x16cb96(0x1c3)]()&&_0x7bf4da[_0x16cb96(0x14c)]()[_0x16cb96(0x175)]===_0x16cb96(0x16b)){db[_0x16cb96(0x1b5)](_0x16cb96(0x1af)+_0x24dd41)[_0x16cb96(0x193)]();return;}let _0x4c3e96=prompt(_0x16cb96(0x182),_0x2a8385);_0x4c3e96&&_0x4c3e96['trim']()!==''&&(db[_0x16cb96(0x1b5)](_0x16cb96(0x1ae)+_0x24dd41)['set']({'UserName':_0x4c3e96[_0x16cb96(0x1de)](),'OwnerAdmin':sessionAdmin,'Status':_0x16cb96(0x15d)}),db[_0x16cb96(0x1b5)](_0x16cb96(0x1af)+_0x24dd41)[_0x16cb96(0x193)]());}function reject(_0x39be0a){const _0x4e8457=_0x17929f;confirm(_0x4e8457(0x191))&&db[_0x4e8457(0x1b5)](_0x4e8457(0x1af)+_0x39be0a)[_0x4e8457(0x193)]();}function editUserName(_0x3128a0,_0x5d9c8a){const _0x43f456=_0x17929f;let _0x14b2fa=prompt(_0x43f456(0x1d6),_0x5d9c8a);if(_0x14b2fa&&_0x14b2fa[_0x43f456(0x1de)]()!=='')db[_0x43f456(0x1b5)](_0x43f456(0x1ae)+_0x3128a0+_0x43f456(0x1be))[_0x43f456(0x1ca)](_0x14b2fa[_0x43f456(0x1de)]());}function toggleUser(_0x88b06c,_0x5a40af){const _0x4f4066=_0x17929f;db[_0x4f4066(0x1b5)](_0x4f4066(0x1ae)+_0x88b06c+'/Status')[_0x4f4066(0x1ca)](_0x5a40af==='Active'?_0x4f4066(0x15d):'Active');}function banUser(_0xe5a9ae){const _0x4fbba0=_0x17929f;confirm(_0x4fbba0(0x1c8))&&db[_0x4fbba0(0x1b5)](_0x4fbba0(0x1ae)+_0xe5a9ae+_0x4fbba0(0x1b2))['set'](_0x4fbba0(0x16b));}function unbanUser(_0x56463e){const _0x367902=_0x17929f;confirm(_0x367902(0x190))&&db[_0x367902(0x1b5)]('AllowedIPs/'+_0x56463e+_0x367902(0x1b2))[_0x367902(0x1ca)](_0x367902(0x15d));}function deleteUser(_0x34617f){const _0xc9a1f5=_0x17929f;if(confirm('Bu\x20kullanıcıyı\x20sistemden\x20TAMAMEN\x20SİLMEK\x20istediğinize\x20emin\x20misiniz?'))db[_0xc9a1f5(0x1b5)](_0xc9a1f5(0x1ae)+_0x34617f)[_0xc9a1f5(0x193)]();}function openReport(_0x45a3c3,_0x3dc245){const _0x206f10=_0x17929f;activeReportIp=_0x45a3c3,activeReportName=_0x3dc245,document[_0x206f10(0x172)](_0x206f10(0x1df))['innerText']=_0x3dc245+_0x206f10(0x186),document[_0x206f10(0x172)](_0x206f10(0x157))[_0x206f10(0x1a4)][_0x206f10(0x160)]='block',loadReport();}async function loadReport(){const _0x4e8cb0=_0x17929f,_0x95fec8=document[_0x4e8cb0(0x172)](_0x4e8cb0(0x176))[_0x4e8cb0(0x153)],_0x6d856a=document[_0x4e8cb0(0x172)]('repMonth')[_0x4e8cb0(0x153)],_0x66cf77=document['getElementById'](_0x4e8cb0(0x1a1));_0x66cf77[_0x4e8cb0(0x151)]=_0x4e8cb0(0x185);const _0x5d150f=await db[_0x4e8cb0(0x1b5)]('Logs/'+_0x95fec8+'/'+_0x6d856a)[_0x4e8cb0(0x159)](_0x4e8cb0(0x153));if(!_0x5d150f[_0x4e8cb0(0x1c3)]()){_0x66cf77[_0x4e8cb0(0x151)]=_0x4e8cb0(0x18b);return;}let _0xb433e7=0x0,_0x39fd8e={};currentTxtData='';let _0x3571f6='<table><tr><th>Tarih/Saat</th><th>Eczane\x20/\x20GLN</th><th>İlaç\x20Adı</th></tr>';_0x5d150f[_0x4e8cb0(0x19f)](_0x59d7c1=>{const _0x2efac7=_0x4e8cb0,_0x17a80f=_0x59d7c1[_0x2efac7(0x168)],_0x341473=_0x59d7c1[_0x2efac7(0x1d3)](activeReportIp);_0x341473['exists']()&&_0x341473[_0x2efac7(0x19f)](_0x5cf8a1=>{const _0x136246=_0x2efac7,_0xde4916=_0x5cf8a1[_0x136246(0x14c)]();_0xb433e7++;if(!_0x39fd8e[_0xde4916[_0x136246(0x188)]])_0x39fd8e[_0xde4916[_0x136246(0x188)]]=0x0;_0x39fd8e[_0xde4916['İlaç']]++,currentTxtData+='['+_0xde4916[_0x136246(0x1cd)]+_0x136246(0x1ab)+_0xde4916['SN']+_0x136246(0x1ab)+_0xde4916[_0x136246(0x17e)]+_0x136246(0x1b9),_0x3571f6+=_0x136246(0x14a)+_0x17a80f+'/'+_0x6d856a+'/'+_0x95fec8+'<br><small\x20style=\x22color:#8b949e\x22>'+_0xde4916[_0x136246(0x173)]+_0x136246(0x192)+(_0xde4916[_0x136246(0x1e0)]||'-')+_0x136246(0x1cc)+(_0xde4916[_0x136246(0x1a2)]||'')+_0x136246(0x179)+_0xde4916['İlaç']+_0x136246(0x1db)+(_0xde4916[_0x136246(0x18c)]||'-')+_0x136246(0x1d4);});});if(_0xb433e7===0x0){_0x66cf77[_0x4e8cb0(0x151)]=_0x4e8cb0(0x195);return;}let _0x340ff6=_0x4e8cb0(0x15e);for(let _0x50b1ba in _0x39fd8e){_0x340ff6+=_0x4e8cb0(0x16d)+_0x50b1ba+_0x4e8cb0(0x1bf)+_0x39fd8e[_0x50b1ba]+_0x4e8cb0(0x181);}_0x340ff6+='</table></div>',_0x3571f6+='</table>',currentTxtFileName=activeReportName['replace'](/[^a-zA-Z0-9]/g,'_')+'_'+_0x95fec8+'_'+_0x6d856a+_0x4e8cb0(0x149);let _0x42ea93='<button\x20class=\x22btn\x20btn-blue\x22\x20style=\x22margin-bottom:15px;\x20background-color:#8e44ad;\x22\x20onclick=\x22downloadTxt()\x22>📥\x20Tüm\x20Karekodları\x20TXT\x20Olarak\x20İndir</button>';_0x66cf77[_0x4e8cb0(0x151)]=_0x4e8cb0(0x162)+_0xb433e7+_0x4e8cb0(0x197)+_0x42ea93+_0x340ff6+_0x4e8cb0(0x1c2)+_0x3571f6;}function downloadTxt(){const _0x28dfe0=_0x17929f,_0x13c0a1=new Blob([currentTxtData],{'type':_0x28dfe0(0x164)}),_0x4ec55b=URL[_0x28dfe0(0x1a7)](_0x13c0a1),_0x5f26ae=document[_0x28dfe0(0x1c9)]('a');_0x5f26ae['href']=_0x4ec55b,_0x5f26ae[_0x28dfe0(0x17f)]=currentTxtFileName,document[_0x28dfe0(0x1ba)]['appendChild'](_0x5f26ae),_0x5f26ae[_0x28dfe0(0x154)](),document[_0x28dfe0(0x1ba)][_0x28dfe0(0x1d5)](_0x5f26ae),URL[_0x28dfe0(0x1a5)](_0x4ec55b);}function toggleGlobalLock(){const _0x6a866c=_0x17929f;db[_0x6a866c(0x1b5)](_0x6a866c(0x1ad))[_0x6a866c(0x159)]('value',_0x3b7152=>db[_0x6a866c(0x1b5)](_0x6a866c(0x1ad))[_0x6a866c(0x1ca)](!_0x3b7152['val']()));}
+</script>
+<script>
+    // 1. Sağ Tıklamayı Engelle
+    document.addEventListener('contextmenu', event => event.preventDefault());
 
-    let sessionAdmin = "", sessionMyCode = "", sessionCanLock = false, activeReportIp = "";
+    // 2. Klavye Kısayollarını Engelle (F12, Ctrl+Shift+I, Ctrl+U vb.)
+    document.onkeydown = function(e) {
+        if (e.keyCode === 123) { return false; } // F12
+        if (e.ctrlKey && e.shiftKey && e.keyCode === 73) { return false; } // Ctrl+Shift+I
+        if (e.ctrlKey && e.shiftKey && e.keyCode === 74) { return false; } // Ctrl+Shift+J
+        if (e.ctrlKey && e.keyCode === 85) { return false; } // Ctrl+U
+    };
 
-    async function login() {
-        const u = document.getElementById("user").value.toLowerCase();
-        const p = document.getElementById("pass").value;
-        const snap = await db.ref("AdminUsers/" + u).once("value");
-        const data = snap.val();
-
-        if (data && data.Pass === p) {
-            sessionAdmin = u; sessionMyCode = data.MyCode; sessionCanLock = data.CanLock;
-            document.getElementById("loginBox").style.display = "none";
-            document.getElementById("mainPanel").style.display = "block";
-            document.getElementById("adminTag").innerText = `${u.charAt(0).toUpperCase() + u.slice(1)} (Admin)`;
-            if(sessionCanLock) document.getElementById("controlSection").style.display = "block";
-            initData();
-        } else { alert("Hata!"); }
-    }
-
-    function initData() {
-        db.ref("GlobalSettings/IsLocked").on('value', s => {
-            document.getElementById("globalStatusText").innerText = s.val() ? "🔴 KİLİTLİ" : "🟢 AKTİF";
-        });
-
-        // İstekler (Geliştirildi)
-        db.ref("Requests").on('value', snap => {
-            const list = document.getElementById("requestList"); list.innerHTML = "";
-            snap.forEach(child => {
-                const val = child.val();
-                if(!sessionCanLock && val.RefCode !== sessionMyCode) return;
-                list.innerHTML += `<div class="live-log">${val.User} (${val.RefCode}) 
-                <button class="btn btn-blue btn-action" onclick="approve('${child.key}','${val.User}')">İsim Vererek Onayla</button></div>`;
-            });
-        });
-
-        // Ağaç Yapısı (Düzenle ve Sil butonları eklendi)
-        db.ref("AllowedIPs").on('value', snap => {
-            const container = document.getElementById("treeContainer"); container.innerHTML = "";
-            let groups = {};
-            snap.forEach(child => {
-                const val = child.val();
-                if(!sessionCanLock && val.OwnerAdmin !== sessionAdmin) return;
-                if(!groups[val.OwnerAdmin]) groups[val.OwnerAdmin] = [];
-                groups[val.OwnerAdmin].push({ ip: child.key, ...val });
-            });
-
-            for (let owner in groups) {
-                let groupTitle = sessionCanLock ? `📁 ${owner.toUpperCase()} GRUBU` : `📁 Kullanıcılar`;
-                
-                let html = `
-                <div class="group-card">
-                    <b>${groupTitle}</b>
-                    <table>
-                        ${groups[owner].map(u => {
-                            let displayStatus = u.Status === 'Active' ? 'Aktif' : 'Pasif';
-                            return `
-                            <tr>
-                                <td>
-                                    <strong>${u.UserName}</strong> 
-                                    <span id="ecz_${u.ip}" class="eczane-badge">Eczane Aranıyor...</span>
-                                </td>
-                                <td>${u.ip.replace(/_/g,'.')}</td>
-                                <td style="color:${u.Status==='Active'?'#3fb950':'#f85149'}">${displayStatus}</td>
-                                <td>
-                                    <button class="btn btn-blue btn-action" style="background:#58a6ff;color:black" onclick="editUserName('${u.ip}','${u.UserName}')">✏️ Düzenle</button>
-                                    <button class="btn btn-blue btn-action" onclick="toggleUser('${u.ip}','${u.Status}')">Durum</button>
-                                    <button class="btn btn-blue btn-action" style="background:#f1c40f;color:black" onclick="openReport('${u.ip}','${u.UserName}')">📊 Rapor</button>
-                                    <button class="btn btn-red btn-action" onclick="deleteUser('${u.ip}')">🗑️ Sil</button>
-                                </td>
-                            </tr>`;
-                        }).join('')}
-                    </table>
-                </div>`;
-                container.innerHTML += html;
-            }
-        });
-
-        db.ref("LiveTraffic").on('value', snap => {
-            const area = document.getElementById("liveTraffic"); area.innerHTML = "";
-            snap.forEach(node => {
-                const data = node.val();
-                const ip = node.key;
-                const eczaneName = data.Eczane || 'Bilinmeyen Eczane';
-                area.innerHTML = `<div class="live-log"><b>${ip.replace(/_/g,'.')}:</b> ${data.İlaç} <span style="color:var(--green)">(${eczaneName})</span></div>` + area.innerHTML;
-                
-                const badge = document.getElementById("ecz_" + ip);
-                if(badge) {
-                    badge.innerText = eczaneName;
-                    badge.style.background = data.Eczane ? "#238636" : "#30363d";
-                }
-            });
-        });
-    }
-
-    // YENİ EKLENEN FONKSİYONLAR
-    function approve(ip, currentName) {
-        let newName = prompt("Bu cihazı hangi isimle kaydetmek istiyorsunuz?", currentName);
-        if(newName && newName.trim() !== "") {
-            db.ref("AllowedIPs/" + ip).set({ UserName: newName.trim(), OwnerAdmin: sessionAdmin, Status: "Passive" });
-            db.ref("Requests/" + ip).remove();
-        }
-    }
-
-    function editUserName(ip, currentName) {
-        let newName = prompt("Kullanıcının yeni ismini girin:", currentName);
-        if(newName && newName.trim() !== "") {
-            db.ref("AllowedIPs/" + ip + "/UserName").set(newName.trim());
-        }
-    }
-
-    function deleteUser(ip) {
-        if(confirm("Bu kullanıcıyı sistemden TAMAMEN SİLMEK istediğinize emin misiniz?")) {
-            db.ref("AllowedIPs/" + ip).remove();
-        }
-    }
-
-    // MEVCUT FONKSİYONLAR
-    function openReport(ip, name) {
-        activeReportIp = ip;
-        document.getElementById("reportTitle").innerText = name + " - Geçmiş Kayıtlar";
-        document.getElementById("reportModal").style.display = "block";
-        loadReport();
-    }
-
-    async function loadReport() {
-        const y = document.getElementById("repYear").value;
-        const m = document.getElementById("repMonth").value;
-        const content = document.getElementById("reportContent");
-        content.innerHTML = "Veriler taranıyor...";
-
-        const snap = await db.ref(`Logs/${y}/${m}`).once("value");
-        if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
-
-        let html = `<table><tr><th>Tarih/Saat</th><th>Eczane / GLN</th><th>İlaç / GTIN</th><th>Parti / SKT</th><th>Karekod (SN)</th></tr>`;
-        let totalCount = 0;
-
-        snap.forEach(dayNode => {
-            const day = dayNode.key;
-            const userLogs = dayNode.child(activeReportIp);
-            if(userLogs.exists()) {
-                userLogs.forEach(logEntry => {
-                    const log = logEntry.val();
-                    totalCount++;
-                    html += `<tr>
-                        <td>${day}/${m}/${y}<br><small style="color:#8b949e">${log.Zaman}</small></td>
-                        <td>${log.Eczane || '-'}<br><small style="color:#8b949e">${log.GLN || ''}</small></td>
-                        <td>${log.İlaç}<br><small style="color:#8b949e">GTIN: ${log.GTIN || ''}</small></td>
-                        <td>P: ${log.Parti || '-'}<br>S: ${log.SKT || '-'}</td>
-                        <td><code>${log.SN}</code></td>
-                    </tr>`;
-                });
-            }
-        });
-
-        content.innerHTML = `<h3>Bu ay toplam ${totalCount} işlem yapıldı.</h3>` + html + `</table>`;
-    }
-
-    function toggleUser(key, cur) { db.ref("AllowedIPs/" + key + "/Status").set(cur === "Active" ? "Passive" : "Active"); }
-    function toggleGlobalLock() { db.ref("GlobalSettings/IsLocked").once('value', s => db.ref("GlobalSettings/IsLocked").set(!s.val())); }
+    // 3. Tarayıcı Geliştirici Araçlarını (İncele) Kilitle (Debugger Döngüsü)
+    setInterval(function() {
+        (function() { return false; }['constructor']('debugger')());
+    }, 50);
 </script>
 </body>
 </html>
+
+
+
+
+
+
