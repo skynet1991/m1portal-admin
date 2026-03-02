@@ -107,17 +107,18 @@
             document.getElementById("globalStatusText").innerText = s.val() ? "🔴 KİLİTLİ" : "🟢 AKTİF";
         });
 
-        // İstekler
+        // İstekler (Geliştirildi)
         db.ref("Requests").on('value', snap => {
             const list = document.getElementById("requestList"); list.innerHTML = "";
             snap.forEach(child => {
                 const val = child.val();
                 if(!sessionCanLock && val.RefCode !== sessionMyCode) return;
-                list.innerHTML += `<div class="live-log">${val.User} (${val.RefCode}) <button class="btn btn-blue btn-action" onclick="approve('${child.key}','${val.User}')">Onayla</button></div>`;
+                list.innerHTML += `<div class="live-log">${val.User} (${val.RefCode}) 
+                <button class="btn btn-blue btn-action" onclick="approve('${child.key}','${val.User}')">İsim Vererek Onayla</button></div>`;
             });
         });
 
-        // Ağaç Yapısı
+        // Ağaç Yapısı (Düzenle ve Sil butonları eklendi)
         db.ref("AllowedIPs").on('value', snap => {
             const container = document.getElementById("treeContainer"); container.innerHTML = "";
             let groups = {};
@@ -139,12 +140,17 @@
                             let displayStatus = u.Status === 'Active' ? 'Aktif' : 'Pasif';
                             return `
                             <tr>
-                                <td>${u.UserName} <span id="ecz_${u.ip}" class="eczane-badge">Eczane Aranıyor...</span></td>
+                                <td>
+                                    <strong>${u.UserName}</strong> 
+                                    <span id="ecz_${u.ip}" class="eczane-badge">Eczane Aranıyor...</span>
+                                </td>
                                 <td>${u.ip.replace(/_/g,'.')}</td>
                                 <td style="color:${u.Status==='Active'?'#3fb950':'#f85149'}">${displayStatus}</td>
                                 <td>
+                                    <button class="btn btn-blue btn-action" style="background:#58a6ff;color:black" onclick="editUserName('${u.ip}','${u.UserName}')">✏️ Düzenle</button>
                                     <button class="btn btn-blue btn-action" onclick="toggleUser('${u.ip}','${u.Status}')">Durum</button>
                                     <button class="btn btn-blue btn-action" style="background:#f1c40f;color:black" onclick="openReport('${u.ip}','${u.UserName}')">📊 Rapor</button>
+                                    <button class="btn btn-red btn-action" onclick="deleteUser('${u.ip}')">🗑️ Sil</button>
                                 </td>
                             </tr>`;
                         }).join('')}
@@ -154,18 +160,14 @@
             }
         });
 
-        // Canlı Trafik ve Eczane Rozetleri Güncellemesi
         db.ref("LiveTraffic").on('value', snap => {
             const area = document.getElementById("liveTraffic"); area.innerHTML = "";
             snap.forEach(node => {
                 const data = node.val();
                 const ip = node.key;
                 const eczaneName = data.Eczane || 'Bilinmeyen Eczane';
-                
-                // Anlık Trafik listesine Eczane adını ekle
                 area.innerHTML = `<div class="live-log"><b>${ip.replace(/_/g,'.')}:</b> ${data.İlaç} <span style="color:var(--green)">(${eczaneName})</span></div>` + area.innerHTML;
                 
-                // Tablodaki kullanıcı isminin yanındaki rozeti güncelle
                 const badge = document.getElementById("ecz_" + ip);
                 if(badge) {
                     badge.innerText = eczaneName;
@@ -175,6 +177,29 @@
         });
     }
 
+    // YENİ EKLENEN FONKSİYONLAR
+    function approve(ip, currentName) {
+        let newName = prompt("Bu cihazı hangi isimle kaydetmek istiyorsunuz?", currentName);
+        if(newName && newName.trim() !== "") {
+            db.ref("AllowedIPs/" + ip).set({ UserName: newName.trim(), OwnerAdmin: sessionAdmin, Status: "Passive" });
+            db.ref("Requests/" + ip).remove();
+        }
+    }
+
+    function editUserName(ip, currentName) {
+        let newName = prompt("Kullanıcının yeni ismini girin:", currentName);
+        if(newName && newName.trim() !== "") {
+            db.ref("AllowedIPs/" + ip + "/UserName").set(newName.trim());
+        }
+    }
+
+    function deleteUser(ip) {
+        if(confirm("Bu kullanıcıyı sistemden TAMAMEN SİLMEK istediğinize emin misiniz?")) {
+            db.ref("AllowedIPs/" + ip).remove();
+        }
+    }
+
+    // MEVCUT FONKSİYONLAR
     function openReport(ip, name) {
         activeReportIp = ip;
         document.getElementById("reportTitle").innerText = name + " - Geçmiş Kayıtlar";
@@ -191,7 +216,6 @@
         const snap = await db.ref(`Logs/${y}/${m}`).once("value");
         if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
 
-        // YENİ: Tablo başlıkları güncellendi
         let html = `<table><tr><th>Tarih/Saat</th><th>Eczane / GLN</th><th>İlaç / GTIN</th><th>Parti / SKT</th><th>Karekod (SN)</th></tr>`;
         let totalCount = 0;
 
@@ -202,8 +226,6 @@
                 userLogs.forEach(logEntry => {
                     const log = logEntry.val();
                     totalCount++;
-                    
-                    // YENİ: Rapor satırları detaylandırıldı
                     html += `<tr>
                         <td>${day}/${m}/${y}<br><small style="color:#8b949e">${log.Zaman}</small></td>
                         <td>${log.Eczane || '-'}<br><small style="color:#8b949e">${log.GLN || ''}</small></td>
@@ -216,11 +238,6 @@
         });
 
         content.innerHTML = `<h3>Bu ay toplam ${totalCount} işlem yapıldı.</h3>` + html + `</table>`;
-    }
-
-    function approve(ip, name) {
-        db.ref("AllowedIPs/" + ip).set({ UserName: name, OwnerAdmin: sessionAdmin, Status: "Passive" });
-        db.ref("Requests/" + ip).remove();
     }
 
     function toggleUser(key, cur) { db.ref("AllowedIPs/" + key + "/Status").set(cur === "Active" ? "Passive" : "Active"); }
