@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <title>m1portal | Yönetim Merkezi</title>
@@ -7,173 +8,305 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --red: #da3633; --border: #30363d; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1250px; margin: auto; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .group-card { background: #1c2128; border-left: 4px solid var(--blue); padding: 15px; margin-bottom: 15px; border-radius: 4px; overflow-x: auto; }
-        input, select { background: #000; color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-blue { background: var(--blue); color: white; }
-        .btn-red { background: var(--red); color: white; }
-        .btn-action { padding: 5px 10px; font-size: 11px; margin: 2px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; white-space: nowrap; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #333; font-size: 13px; }
-        .live-log { font-family: monospace; font-size: 12px; border-left: 3px solid var(--blue); padding: 5px; margin-bottom: 5px; background: #000; }
-        #mainPanel, #controlSection, #reportModal { display: none; }
-        #reportModal { position: fixed; top: 5%; left: 10%; width: 80%; height: 85%; background: var(--card); border: 2px solid var(--blue); z-index: 1000; padding: 20px; overflow-y: auto; border-radius: 10px; box-shadow: 0 0 50px #000; }
-        .eczane-badge { background:#30363d; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight: bold; }
-        .root-alias { color: #f1c40f; font-size: 12px; margin-left: 5px; font-style: italic; }
-        .summary-table th { background: #000; }
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --text: #c9d1d9;
+            --blue: #58a6ff;
+            --green: #238636;
+            --red: #da3633;
+            --border: #30363d;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1250px;
+            margin: auto;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .group-card {
+            background: #1c2128;
+            border-left: 4px solid var(--blue);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        input,
+        select {
+            background: #000;
+            color: #fff;
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-blue {
+            background: var(--blue);
+            color: white;
+        }
+
+        .btn-red {
+            background: var(--red);
+            color: white;
+        }
+
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 11px;
+            margin: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            white-space: nowrap;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            font-size: 13px;
+        }
+
+        .live-log {
+            font-family: monospace;
+            font-size: 12px;
+            border-left: 3px solid var(--blue);
+            padding: 5px;
+            margin-bottom: 5px;
+            background: #000;
+        }
+
+        #mainPanel,
+        #controlSection,
+        #reportModal {
+            display: none;
+        }
+
+        #reportModal {
+            position: fixed;
+            top: 5%;
+            left: 10%;
+            width: 80%;
+            height: 85%;
+            background: var(--card);
+            border: 2px solid var(--blue);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 50px #000;
+        }
+
+        .eczane-badge {
+            background: #30363d;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
+        .root-alias {
+            color: #f1c40f;
+            font-size: 12px;
+            margin-left: 5px;
+            font-style: italic;
+        }
+
+        .summary-table th {
+            background: #000;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <div id="loginBox" class="card" style="max-width: 350px; margin: 100px auto; text-align: center;">
-        <h2>m1portal Giriş</h2>
-        <input type="text" id="user" placeholder="E-posta Adresiniz">
-        <input type="password" id="pass" placeholder="Şifre">
-        <button class="btn btn-blue" style="width:100%" onclick="login()">Giriş</button>
+    <div class="container">
+        <div id="loginBox" class="card" style="max-width: 350px; margin: 100px auto; text-align: center;">
+            <h2>m1portal Giriş</h2>
+            <input type="text" id="user" placeholder="E-posta Adresiniz">
+            <input type="password" id="pass" placeholder="Şifre">
+            <button class="btn btn-blue" style="width:100%" onclick="login()">Giriş</button>
+        </div>
+
+        <div id="mainPanel">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>m1portal <small id="adminTag" style="color: var(--blue); font-size: 14px;"></small></h1>
+                <button class="btn btn-red" onclick="logout()">Çıkış</button>
+            </div>
+
+            <div class="card" id="controlSection" style="border-color: var(--blue);">
+                <h3>Sistem Kontrolü (Root Yetkisi)</h3>
+                <button class="btn btn-blue" onclick="toggleGlobalLock()">Genel Kilidi Aç/Kapat</button>
+                <span id="globalStatusText" style="margin-left: 15px; font-weight: bold;">...</span>
+            </div>
+
+            <div class="card" id="bannedCard" style="border-color: var(--red); display: none;">
+                <h3 style="color: var(--red);">🚫 Banlı Kullanıcılar</h3>
+                <div id="bannedContainer">Yükleniyor...</div>
+            </div>
+
+            <div class="card">
+                <h3>Yeni İstekler</h3>
+                <div id="requestList">Bekleyen istek yok.</div>
+            </div>
+
+            <div class="card">
+                <h3>Kullanıcı Grupları</h3>
+                <div id="treeContainer">Yükleniyor...</div>
+            </div>
+
+            <div class="card" id="liveTrafficCard">
+                <h3>Anlık Trafik</h3>
+                <div id="liveTraffic" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="mainPanel">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>m1portal <small id="adminTag" style="color: var(--blue); font-size: 14px;"></small></h1>
-            <button class="btn btn-red" onclick="logout()">Çıkış</button>
+    <div id="reportModal">
+        <div style="display:flex; justify-content: space-between;">
+            <h2 id="reportTitle">Kullanıcı Raporu</h2>
+            <button class="btn btn-red"
+                onclick="document.getElementById('reportModal').style.display='none'">Kapat</button>
         </div>
-
-        <div class="card" id="controlSection" style="border-color: var(--blue);">
-            <h3>Sistem Kontrolü (Root Yetkisi)</h3>
-            <button class="btn btn-blue" onclick="toggleGlobalLock()">Genel Kilidi Aç/Kapat</button>
-            <span id="globalStatusText" style="margin-left: 15px; font-weight: bold;">...</span>
+        <div style="display:flex; gap: 10px; margin: 20px 0;">
+            <select id="repYear">
+                <option value="2026">2026</option>
+            </select>
+            <select id="repMonth">
+                <option value="01">Ocak</option>
+                <option value="02">Şubat</option>
+                <option value="03" selected>Mart</option>
+                <option value="04">Nisan</option>
+                <option value="05">Mayıs</option>
+                <option value="06">Haziran</option>
+            </select>
+            <button class="btn btn-blue" onclick="loadReport()">Raporu Getir</button>
         </div>
-
-        <div class="card" id="bannedCard" style="border-color: var(--red); display: none;">
-            <h3 style="color: var(--red);">🚫 Banlı Kullanıcılar</h3>
-            <div id="bannedContainer">Yükleniyor...</div>
-        </div>
-
-        <div class="card">
-            <h3>Yeni İstekler</h3>
-            <div id="requestList">Bekleyen istek yok.</div>
-        </div>
-
-        <div class="card">
-            <h3>Kullanıcı Grupları</h3>
-            <div id="treeContainer">Yükleniyor...</div>
-        </div>
-
-        <div class="card" id="liveTrafficCard">
-            <h3>Anlık Trafik</h3>
-            <div id="liveTraffic" style="max-height: 200px; overflow-y: auto;"></div>
-        </div>
+        <div id="reportContent">Tarih seçip butona basın.</div>
     </div>
-</div>
 
-<div id="reportModal">
-    <div style="display:flex; justify-content: space-between;">
-        <h2 id="reportTitle">Kullanıcı Raporu</h2>
-        <button class="btn btn-red" onclick="document.getElementById('reportModal').style.display='none'">Kapat</button>
-    </div>
-    <div style="display:flex; gap: 10px; margin: 20px 0;">
-        <select id="repYear"><option value="2026">2026</option></select>
-        <select id="repMonth">
-            <option value="01">Ocak</option><option value="02">Şubat</option><option value="03" selected>Mart</option>
-            <option value="04">Nisan</option><option value="05">Mayıs</option><option value="06">Haziran</option>
-        </select>
-        <button class="btn btn-blue" onclick="loadReport()">Raporu Getir</button>
-    </div>
-    <div id="reportContent">Tarih seçip butona basın.</div>
-</div>
+    <script>
+        // API KEY VE FIREBASE AYARLARI BURADA
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMmsdfutiyB2vEGJbr6oxb_wN8U_SqZKs",
+            authDomain: "m1portalproject.firebaseapp.com",
+            databaseURL: "https://m1portalproject-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "m1portalproject",
+            storageBucket: "m1portalproject.firebasestorage.app",
+            messagingSenderId: "240798073250",
+            appId: "1:240798073250:web:ac96743b48dfaf2ce132fb"
+        };
 
-<script>
-    // API KEY VE FIREBASE AYARLARI BURADA
-    const firebaseConfig = {
-      apiKey: "AIzaSyAMmsdfutiyB2vEGJbr6oxb_wN8U_SqZKs",
-      authDomain: "m1portalproject.firebaseapp.com",
-      databaseURL: "https://m1portalproject-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "m1portalproject",
-      storageBucket: "m1portalproject.firebasestorage.app",
-      messagingSenderId: "240798073250",
-      appId: "1:240798073250:web:ac96743b48dfaf2ce132fb"
-    };
+        // Firebase Başlatma
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    // Firebase Başlatma
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+        let sessionAdmin = "", sessionMyCode = "", sessionCanLock = false;
+        let activeReportIp = "", activeReportName = "";
+        let currentTxtData = "", currentTxtFileName = "";
+        let bannedIPs = [];
 
-    let sessionAdmin = "", sessionMyCode = "", sessionCanLock = false;
-    let activeReportIp = "", activeReportName = "";
-    let currentTxtData = "", currentTxtFileName = ""; 
-    let bannedIPs = []; 
+        async function login() {
+            try {
+                const e = document.getElementById("user").value.trim();
+                const p = document.getElementById("pass").value;
 
-    async function login() {
-        try {
-            const e = document.getElementById("user").value.trim();
-            const p = document.getElementById("pass").value;
-            
-            // Google Firebase Auth ile Giriş
-            const userCredential = await firebase.auth().signInWithEmailAndPassword(e, p);
-            const uid = userCredential.user.uid;
+                // Google Firebase Auth ile Giriş
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(e, p);
+                const uid = userCredential.user.uid;
 
-            // AdminUsers tablosundan yetkileri çek
-            const snap = await db.ref("AdminUsers/" + uid).once("value");
-            const data = snap.val();
+                // AdminUsers tablosundan yetkileri çek
+                const snap = await db.ref("AdminUsers/" + uid).once("value");
+                const data = snap.val();
 
-            if (data) {
-                sessionAdmin = data.Name || e.split('@')[0]; 
-                sessionMyCode = data.MyCode; 
-                sessionCanLock = data.CanLock;
-                
-                document.getElementById("loginBox").style.display = "none";
-                document.getElementById("mainPanel").style.display = "block";
-                
-                // İŞTE O PSİKOLOJİK DOKUNUŞ BURADA: Kurucu vs Sistem Yöneticisi
-                document.getElementById("adminTag").innerText = `${sessionCanLock ? sessionAdmin + ' (Kurucu)' : sessionAdmin + ' (Sistem Yöneticisi)'}`;
-                
-                if(sessionCanLock) {
-                    document.getElementById("controlSection").style.display = "block";
-                    document.getElementById("bannedCard").style.display = "block"; 
+                if (data) {
+                    sessionAdmin = data.Name || e.split('@')[0];
+                    sessionMyCode = data.MyCode;
+                    sessionCanLock = data.CanLock;
+
+                    document.getElementById("loginBox").style.display = "none";
+                    document.getElementById("mainPanel").style.display = "block";
+
+                    // İŞTE O PSİKOLOJİK DOKUNUŞ BURADA: Kurucu vs Sistem Yöneticisi
+                    document.getElementById("adminTag").innerText = `${sessionCanLock ? sessionAdmin + ' (Kurucu)' : sessionAdmin + ' (Sistem Yöneticisi)'}`;
+
+                    if (sessionCanLock) {
+                        document.getElementById("controlSection").style.display = "block";
+                        document.getElementById("bannedCard").style.display = "block";
+                    } else {
+                        document.getElementById("liveTrafficCard").style.display = "none";
+                    }
+                    initData();
                 } else {
-                    document.getElementById("liveTrafficCard").style.display = "none";
+                    alert("Yetkisiz hesap! UID veritabanında bulunamadı.");
+                    firebase.auth().signOut();
                 }
-                initData();
-            } else { 
-                alert("Yetkisiz hesap! UID veritabanında bulunamadı."); 
-                firebase.auth().signOut();
+            } catch (error) {
+                alert("Giriş başarısız! E-posta veya şifrenizi kontrol edin.\nHata Kodu: " + error.message);
             }
-        } catch(error) {
-            alert("Giriş başarısız! E-posta veya şifrenizi kontrol edin.\nHata Kodu: " + error.message);
         }
-    }
 
-    function logout() {
-        firebase.auth().signOut().then(() => {
-            location.reload();
-        });
-    }
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                location.reload();
+            });
+        }
 
-    function initData() {
-        db.ref("GlobalSettings/IsLocked").on('value', s => {
-            document.getElementById("globalStatusText").innerText = s.val() ? "🔴 KİLİTLİ" : "🟢 AKTİF";
-        });
+        function initData() {
+            db.ref("GlobalSettings/IsLocked").on('value', s => {
+                document.getElementById("globalStatusText").innerText = s.val() ? "🔴 KİLİTLİ" : "🟢 AKTİF";
+            });
 
-        db.ref("Requests").on('value', snap => {
-            const list = document.getElementById("requestList"); list.innerHTML = "";
-            let hasReq = false;
-            
-            snap.forEach(child => {
-                if (bannedIPs.includes(child.key)) {
-                    db.ref("Requests/" + child.key).remove();
-                    return;
-                }
+            db.ref("Requests").on('value', snap => {
+                const list = document.getElementById("requestList"); list.innerHTML = "";
+                let hasReq = false;
 
-                const val = child.val();
-                if(!sessionCanLock && val.RefCode !== sessionMyCode) return;
-                
-                hasReq = true;
-                list.innerHTML += `
+                snap.forEach(child => {
+                    if (bannedIPs.includes(child.key)) {
+                        db.ref("Requests/" + child.key).remove();
+                        return;
+                    }
+
+                    const val = child.val();
+                    if (!sessionCanLock && val.RefCode !== sessionMyCode) return;
+
+                    hasReq = true;
+                    list.innerHTML += `
                 <div class="live-log" style="padding: 10px;">
                     <b style="font-size: 14px;">${val.User}</b> <span style="color:#f1c40f">(${val.RefCode})</span> 
                     <div style="float:right;">
@@ -182,58 +315,58 @@
                     </div>
                     <div style="clear:both;"></div>
                 </div>`;
-            });
-            
-            if(!hasReq) list.innerHTML = "Bekleyen istek yok.";
-        });
+                });
 
-        db.ref("AllowedIPs").on('value', snap => {
-            const container = document.getElementById("treeContainer"); container.innerHTML = "";
-            const bannedContainer = document.getElementById("bannedContainer");
-            
-            let groups = {};
-            let bannedList = [];
-            bannedIPs = []; 
-
-            snap.forEach(child => {
-                const val = child.val();
-                if(!val) return;
-                
-                if (val.Status === "Banned") {
-                    bannedIPs.push(child.key);
-                    if (sessionCanLock) bannedList.push({ ip: child.key, ...val });
-                } else {
-                    if(!sessionCanLock && val.OwnerAdmin !== sessionAdmin) return;
-                    if(!groups[val.OwnerAdmin]) groups[val.OwnerAdmin] = [];
-                    groups[val.OwnerAdmin].push({ ip: child.key, ...val });
-                }
+                if (!hasReq) list.innerHTML = "Bekleyen istek yok.";
             });
 
-            for (let owner in groups) {
-                let groupTitle = sessionCanLock ? `📁 ${owner.toUpperCase()} GRUBU` : `📁 Kullanıcılar`;
-                
-                let html = `
+            db.ref("AllowedIPs").on('value', snap => {
+                const container = document.getElementById("treeContainer"); container.innerHTML = "";
+                const bannedContainer = document.getElementById("bannedContainer");
+
+                let groups = {};
+                let bannedList = [];
+                bannedIPs = [];
+
+                snap.forEach(child => {
+                    const val = child.val();
+                    if (!val) return;
+
+                    if (val.Status === "Banned") {
+                        bannedIPs.push(child.key);
+                        if (sessionCanLock) bannedList.push({ ip: child.key, ...val });
+                    } else {
+                        if (!sessionCanLock && val.OwnerAdmin !== sessionAdmin) return;
+                        if (!groups[val.OwnerAdmin]) groups[val.OwnerAdmin] = [];
+                        groups[val.OwnerAdmin].push({ ip: child.key, ...val });
+                    }
+                });
+
+                for (let owner in groups) {
+                    let groupTitle = sessionCanLock ? `📁 ${owner.toUpperCase()} GRUBU` : `📁 Kullanıcılar`;
+
+                    let html = `
                 <div class="group-card">
                     <b>${groupTitle}</b>
                     <table>
                         ${groups[owner].map(u => {
-                            let displayStatus = u.Status === 'Active' ? 'Aktif' : 'Pasif';
-                            let rootAliasDisplay = "";
-                            let rootAliasBtn = "";
-                            
-                            if(sessionCanLock) { 
-                                if(u.RootAlias && u.RootAlias.trim() !== "") rootAliasDisplay = `<span class="root-alias">(${u.RootAlias})</span>`;
-                                rootAliasBtn = `<button class="btn btn-action" style="background:#8e44ad;color:white" onclick="editRootAlias('${u.ip}','${u.RootAlias || ''}')">🕵️ Gizli Ad</button>`;
-                            }
+                        let displayStatus = u.Status === 'Active' ? 'Aktif' : 'Pasif';
+                        let rootAliasDisplay = "";
+                        let rootAliasBtn = "";
 
-                            return `
+                        if (sessionCanLock) {
+                            if (u.RootAlias && u.RootAlias.trim() !== "") rootAliasDisplay = `<span class="root-alias">(${u.RootAlias})</span>`;
+                            rootAliasBtn = `<button class="btn btn-action" style="background:#8e44ad;color:white" onclick="editRootAlias('${u.ip}','${u.RootAlias || ''}')">🕵️ Gizli Ad</button>`;
+                        }
+
+                        return `
                             <tr>
                                 <td>
                                     <strong>${u.UserName}</strong> ${rootAliasDisplay}
                                     <span id="ecz_${u.ip}" class="eczane-badge">Eczane Aranıyor...</span>
                                 </td>
-                                <td>${u.ip.replace(/_/g,'.')}</td>
-                                <td style="color:${u.Status==='Active'?'#3fb950':'#f85149'}">${displayStatus}</td>
+                                <td>${u.ip.replace(/_/g, '.')}</td>
+                                <td style="color:${u.Status === 'Active' ? '#3fb950' : '#f85149'}">${displayStatus}</td>
                                 <td>
                                     ${rootAliasBtn}
                                     <button class="btn btn-blue btn-action" style="background:#58a6ff;color:black" onclick="editUserName('${u.ip}','${u.UserName}')">✏️ Düzenle</button>
@@ -243,198 +376,199 @@
                                     ${sessionCanLock ? `<button class="btn btn-red btn-action" onclick="deleteUser('${u.ip}')">🗑️ Sil</button>` : ''}
                                 </td>
                             </tr>`;
-                        }).join('')}
+                    }).join('')}
                     </table>
                 </div>`;
-                container.innerHTML += html;
-            }
+                    container.innerHTML += html;
+                }
 
-            if (sessionCanLock) {
-                if (bannedList.length > 0) {
-                    let bHtml = `<table style="background: #2a0a0a; border-radius: 5px;">`;
-                    bannedList.forEach(u => {
-                        bHtml += `<tr>
+                if (sessionCanLock) {
+                    if (bannedList.length > 0) {
+                        let bHtml = `<table style="background: #2a0a0a; border-radius: 5px;">`;
+                        bannedList.forEach(u => {
+                            bHtml += `<tr>
                             <td><strong>${u.UserName}</strong> <br><small style="color:#8b949e">Yönetici: ${u.OwnerAdmin}</small></td>
-                            <td>${u.ip.replace(/_/g,'.')}</td>
+                            <td>${u.ip.replace(/_/g, '.')}</td>
                             <td style="color:var(--red); font-weight:bold;">YASAKLI</td>
                             <td>
                                 <button class="btn btn-blue btn-action" style="background:#238636;" onclick="unbanUser('${u.ip}')">🔄 Banı Kaldır</button>
                                 <button class="btn btn-red btn-action" onclick="deleteUser('${u.ip}')">🗑️ Sil</button>
                             </td>
                         </tr>`;
-                    });
-                    bHtml += `</table>`;
-                    bannedContainer.innerHTML = bHtml;
-                } else {
-                    bannedContainer.innerHTML = "Şu anda banlı kullanıcı bulunmuyor.";
+                        });
+                        bHtml += `</table>`;
+                        bannedContainer.innerHTML = bHtml;
+                    } else {
+                        bannedContainer.innerHTML = "Şu anda banlı kullanıcı bulunmuyor.";
+                    }
+                }
+            });
+
+            function handleLiveTraffic(node) {
+                const data = node.val();
+                const ip = node.key;
+                const eczaneName = data.Eczane || 'Bilinmeyen Eczane';
+                const adet = data.Adet || 1;
+
+                if (sessionCanLock) {
+                    const area = document.getElementById("liveTraffic");
+                    const newLog = document.createElement('div');
+                    newLog.className = 'live-log';
+                    newLog.innerHTML = `<b>${ip.replace(/_/g, '.')}:</b> <span style="color:var(--green)">"${eczaneName}"</span> ${adet} adet <b>${data.İlaç}</b> bildirdi. <small style="color:#8b949e">(${data.Zaman})</small>`;
+                    area.prepend(newLog);
+
+                    // Panel belleğinin şişmemesi için son 50 gösterimi tut
+                    if (area.children.length > 50) area.removeChild(area.lastChild);
+                }
+
+                const badge = document.getElementById("ecz_" + ip);
+                if (badge) {
+                    badge.innerText = eczaneName;
+                    badge.style.background = (data.Eczane && data.Eczane !== "Bilinmiyor") ? "#238636" : "#30363d";
                 }
             }
-        });
 
-        function handleLiveTraffic(node) {
-            const data = node.val();
-            const ip = node.key;
-            const eczaneName = data.Eczane || 'Bilinmeyen Eczane';
-            const adet = data.Adet || 1; 
-            
-            if(sessionCanLock) {
-                const area = document.getElementById("liveTraffic");
-                const newLog = document.createElement('div');
-                newLog.className = 'live-log';
-                newLog.innerHTML = `<b>${ip.replace(/_/g,'.')}:</b> <span style="color:var(--green)">"${eczaneName}"</span> ${adet} adet <b>${data.İlaç}</b> bildirdi. <small style="color:#8b949e">(${data.Zaman})</small>`;
-                area.prepend(newLog);
-                
-                // Panel belleğinin şişmemesi için son 50 gösterimi tut
-                if (area.children.length > 50) area.removeChild(area.lastChild);
+            db.ref("LiveTraffic").on('child_added', handleLiveTraffic);
+            db.ref("LiveTraffic").on('child_changed', handleLiveTraffic);
+        }
+
+        function editRootAlias(ip, currentAlias) {
+            let newAlias = prompt("Gizli Takma Ad girin (Silmek için boş bırakın):", currentAlias);
+            if (newAlias !== null) db.ref("AllowedIPs/" + ip + "/RootAlias").set(newAlias.trim());
+        }
+
+        async function approve(ip, currentName, token) {
+            const check = await db.ref("AllowedIPs/" + ip).once("value");
+            if (check.exists() && check.val().Status === "Banned") {
+                db.ref("Requests/" + ip).remove();
+                return;
             }
-            
-            const badge = document.getElementById("ecz_" + ip);
-            if(badge) {
-                badge.innerText = eczaneName;
-                badge.style.background = (data.Eczane && data.Eczane !== "Bilinmiyor") ? "#238636" : "#30363d";
+
+            let newName = prompt("Bu cihazı hangi isimle kaydetmek istiyorsunuz?", currentName);
+            if (newName && newName.trim() !== "") {
+                db.ref("AllowedIPs/" + ip).set({ UserName: newName.trim(), OwnerAdmin: sessionAdmin, Status: "Passive", Token: token });
+                db.ref("Requests/" + ip).remove();
             }
         }
 
-        db.ref("LiveTraffic").on('child_added', handleLiveTraffic);
-        db.ref("LiveTraffic").on('child_changed', handleLiveTraffic);
-    }
-
-    function editRootAlias(ip, currentAlias) {
-        let newAlias = prompt("Gizli Takma Ad girin (Silmek için boş bırakın):", currentAlias);
-        if(newAlias !== null) db.ref("AllowedIPs/" + ip + "/RootAlias").set(newAlias.trim());
-    }
-
-    async function approve(ip, currentName, token) {
-        const check = await db.ref("AllowedIPs/" + ip).once("value");
-        if(check.exists() && check.val().Status === "Banned") {
-            db.ref("Requests/" + ip).remove();
-            return; 
+        function reject(ip) {
+            if (confirm("Bu yetki isteğini reddetmek istediğinize emin misiniz? İstek silinecektir.")) {
+                db.ref("Requests/" + ip).remove();
+            }
         }
 
-        let newName = prompt("Bu cihazı hangi isimle kaydetmek istiyorsunuz?", currentName);
-        if(newName && newName.trim() !== "") {
-            db.ref("AllowedIPs/" + ip).set({ UserName: newName.trim(), OwnerAdmin: sessionAdmin, Status: "Passive", Token: token });
-            db.ref("Requests/" + ip).remove();
+        function editUserName(ip, currentName) {
+            let newName = prompt("Kullanıcıya takma ad girin:", currentName);
+            if (newName && newName.trim() !== "") db.ref("AllowedIPs/" + ip + "/UserName").set(newName.trim());
         }
-    }
 
-    function reject(ip) {
-        if(confirm("Bu yetki isteğini reddetmek istediğinize emin misiniz? İstek silinecektir.")) {
-            db.ref("Requests/" + ip).remove();
+        function toggleUser(key, cur) { db.ref("AllowedIPs/" + key + "/Status").set(cur === "Active" ? "Passive" : "Active"); }
+
+        function banUser(ip) {
+            if (confirm("Bu kullanıcıyı BANLAMAK istediğinize emin misiniz?\nKullanıcı yöneticilerin listesinden tamamen kaybolacaktır.")) {
+                db.ref("AllowedIPs/" + ip + "/Status").set("Banned");
+            }
         }
-    }
 
-    function editUserName(ip, currentName) {
-        let newName = prompt("Kullanıcıya takma ad girin:", currentName);
-        if(newName && newName.trim() !== "") db.ref("AllowedIPs/" + ip + "/UserName").set(newName.trim());
-    }
-
-    function toggleUser(key, cur) { db.ref("AllowedIPs/" + key + "/Status").set(cur === "Active" ? "Passive" : "Active"); }
-    
-    function banUser(ip) { 
-        if(confirm("Bu kullanıcıyı BANLAMAK istediğinize emin misiniz?\nKullanıcı yöneticilerin listesinden tamamen kaybolacaktır.")) {
-            db.ref("AllowedIPs/" + ip + "/Status").set("Banned"); 
+        function unbanUser(ip) {
+            if (confirm("Kullanıcının banını kaldırmak istediğinize emin misiniz? Kullanıcı 'Pasif' duruma geçecektir.")) {
+                db.ref("AllowedIPs/" + ip + "/Status").set("Passive");
+            }
         }
-    }
-    
-    function unbanUser(ip) { 
-        if(confirm("Kullanıcının banını kaldırmak istediğinize emin misiniz? Kullanıcı 'Pasif' duruma geçecektir.")) {
-            db.ref("AllowedIPs/" + ip + "/Status").set("Passive"); 
+
+        function deleteUser(ip) {
+            if (confirm("Bu kullanıcıyı sistemden TAMAMEN SİLMEK istediğinize emin misiniz?")) db.ref("AllowedIPs/" + ip).remove();
         }
-    }
 
-    function deleteUser(ip) {
-        if(confirm("Bu kullanıcıyı sistemden TAMAMEN SİLMEK istediğinize emin misiniz?")) db.ref("AllowedIPs/" + ip).remove();
-    }
+        function openReport(ip, name) {
+            activeReportIp = ip;
+            activeReportName = name;
+            document.getElementById("reportTitle").innerText = name + " - Geçmiş Kayıtlar";
+            document.getElementById("reportModal").style.display = "block";
+            loadReport();
+        }
 
-    function openReport(ip, name) {
-        activeReportIp = ip;
-        activeReportName = name;
-        document.getElementById("reportTitle").innerText = name + " - Geçmiş Kayıtlar";
-        document.getElementById("reportModal").style.display = "block";
-        loadReport();
-    }
+        async function loadReport() {
+            const y = document.getElementById("repYear").value;
+            const m = document.getElementById("repMonth").value;
+            const content = document.getElementById("reportContent");
+            content.innerHTML = "Veriler taranıyor...";
 
-    async function loadReport() {
-        const y = document.getElementById("repYear").value;
-        const m = document.getElementById("repMonth").value;
-        const content = document.getElementById("reportContent");
-        content.innerHTML = "Veriler taranıyor...";
+            const snap = await db.ref(`Logs/${y}/${m}`).once("value");
+            if (!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
 
-        const snap = await db.ref(`Logs/${y}/${m}`).once("value");
-        if(!snap.exists()) { content.innerHTML = "Bu ayda kayıt bulunamadı."; return; }
+            let totalCount = 0;
+            let drugSummary = {};
+            currentTxtData = "";
+            let uniqueKarekods = new Set(); // TEKRARLARI ÖNLEYECEK SET
 
-        let totalCount = 0;
-        let drugSummary = {}; 
-        currentTxtData = ""; 
-        let uniqueKarekods = new Set(); // TEKRARLARI ÖNLEYECEK SET
+            let detailHtml = `<table><tr><th>Tarih/Saat</th><th>Eczane / GLN</th><th>İlaç Adı</th></tr>`;
 
-        let detailHtml = `<table><tr><th>Tarih/Saat</th><th>Eczane / GLN</th><th>İlaç Adı</th></tr>`;
+            snap.forEach(dayNode => {
+                const day = dayNode.key;
+                const userLogs = dayNode.child(activeReportIp);
+                if (userLogs.exists()) {
+                    userLogs.forEach(logEntry => {
+                        const log = logEntry.val();
+                        const uniqueKey = `${log.GTIN}_${log.SN}`;
 
-        snap.forEach(dayNode => {
-            const day = dayNode.key;
-            const userLogs = dayNode.child(activeReportIp);
-            if(userLogs.exists()) {
-                userLogs.forEach(logEntry => {
-                    const log = logEntry.val();
-                    const uniqueKey = `${log.GTIN}_${log.SN}`;
+                        // Eğer bu karekod daha önce sayılmadıysa işleme al
+                        if (!uniqueKarekods.has(uniqueKey)) {
+                            uniqueKarekods.add(uniqueKey);
+                            totalCount++;
 
-                    // Eğer bu karekod daha önce sayılmadıysa işleme al
-                    if(!uniqueKarekods.has(uniqueKey)) {
-                        uniqueKarekods.add(uniqueKey);
-                        totalCount++;
+                            if (!drugSummary[log.İlaç]) drugSummary[log.İlaç] = 0;
+                            drugSummary[log.İlaç]++;
 
-                        if(!drugSummary[log.İlaç]) drugSummary[log.İlaç] = 0;
-                        drugSummary[log.İlaç]++;
+                            currentTxtData += `[${log.GTIN}]-[${log.SN}]-[${log.Parti}]\r\n`;
 
-                        currentTxtData += `[${log.GTIN}]-[${log.SN}]-[${log.Parti}]\r\n`;
-
-                        detailHtml += `<tr>
+                            detailHtml += `<tr>
                             <td>${day}/${m}/${y}<br><small style="color:#8b949e">${log.Zaman}</small></td>
                             <td>${log.Eczane || '-'}<br><small style="color:#8b949e">${log.GLN || ''}</small></td>
                             <td><strong>${log.İlaç}</strong><br><small style="color:#8b949e">SKT: ${log.SKT || '-'}</small></td>
                         </tr>`;
-                    }
-                });
-            }
-        });
+                        }
+                    });
+                }
+            });
 
-        if(totalCount === 0) { content.innerHTML = "Bu ay bu kullanıcıya ait tekil bir kayıt bulunamadı."; return; }
+            if (totalCount === 0) { content.innerHTML = "Bu ay bu kullanıcıya ait tekil bir kayıt bulunamadı."; return; }
 
-        let summaryHtml = `
+            let summaryHtml = `
         <div class="group-card" style="margin-bottom:20px; border-color:var(--green)">
             <h4 style="margin-top:0; color:var(--green)">💊 Aylık İlaç Bildirim Özeti</h4>
             <table class="summary-table" style="width: 100%; max-width: 400px; margin-top:0;">
                 <tr><th>İlaç Adı</th><th style="text-align:center">Bildirim Adedi</th></tr>`;
-        
-        for(let ilac in drugSummary) {
-            summaryHtml += `<tr><td>${ilac}</td><td style="text-align:center; color:var(--green); font-weight:bold; font-size:16px;">${drugSummary[ilac]} Adet</td></tr>`;
+
+            for (let ilac in drugSummary) {
+                summaryHtml += `<tr><td>${ilac}</td><td style="text-align:center; color:var(--green); font-weight:bold; font-size:16px;">${drugSummary[ilac]} Adet</td></tr>`;
+            }
+            summaryHtml += `</table></div>`;
+            detailHtml += `</table>`;
+
+            currentTxtFileName = `${activeReportName.replace(/[^a-zA-Z0-9]/g, '_')}_${y}_${m}_Karekodlar.txt`;
+
+            let downloadBtn = `<button class="btn btn-blue" style="margin-bottom:15px; background-color:#8e44ad;" onclick="downloadTxt()">📥 Tüm Karekodları TXT Olarak İndir</button>`;
+
+            content.innerHTML = `<h3>Toplam ${totalCount} tekil işlem yapıldı.</h3>` + downloadBtn + summaryHtml + `<h4>Detaylı Döküm</h4>` + detailHtml;
         }
-        summaryHtml += `</table></div>`;
-        detailHtml += `</table>`;
 
-        currentTxtFileName = `${activeReportName.replace(/[^a-zA-Z0-9]/g, '_')}_${y}_${m}_Karekodlar.txt`;
-        
-        let downloadBtn = `<button class="btn btn-blue" style="margin-bottom:15px; background-color:#8e44ad;" onclick="downloadTxt()">📥 Tüm Karekodları TXT Olarak İndir</button>`;
+        function downloadTxt() {
+            const blob = new Blob([currentTxtData], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentTxtFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
 
-        content.innerHTML = `<h3>Toplam ${totalCount} tekil işlem yapıldı.</h3>` + downloadBtn + summaryHtml + `<h4>Detaylı Döküm</h4>` + detailHtml;
-    }
+        function toggleGlobalLock() { db.ref("GlobalSettings/IsLocked").once('value', s => db.ref("GlobalSettings/IsLocked").set(!s.val())); }
+    </script>
 
-    function downloadTxt() {
-        const blob = new Blob([currentTxtData], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = currentTxtFileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    function toggleGlobalLock() { db.ref("GlobalSettings/IsLocked").once('value', s => db.ref("GlobalSettings/IsLocked").set(!s.val())); }
-</script>
-
-<!-- Geliştirici konsolu (F12) engelleri kod kalitesini artırmak adına kaldırıldı -->
+    <!-- Geliştirici konsolu (F12) engelleri kod kalitesini artırmak adına kaldırıldı -->
 </body>
+
 </html>
