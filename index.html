@@ -181,7 +181,10 @@
             </div>
 
             <div class="card">
-                <h3>Yeni İstekler</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3 style="margin:0;">Yeni İstekler</h3>
+                    <button class="btn btn-red btn-action" onclick="clearAllRequests()" title="Tüm bekleyen istekleri sil">🗑️ Tümünü Temizle</button>
+                </div>
                 <div id="requestList">Bekleyen istek yok.</div>
             </div>
 
@@ -204,16 +207,20 @@
                 onclick="document.getElementById('reportModal').style.display='none'">Kapat</button>
         </div>
         <div style="display:flex; gap: 10px; margin: 20px 0;">
-            <select id="repYear">
-                <option value="2026">2026</option>
-            </select>
+            <select id="repYear"></select>
             <select id="repMonth">
                 <option value="01">Ocak</option>
                 <option value="02">Şubat</option>
-                <option value="03" selected>Mart</option>
+                <option value="03">Mart</option>
                 <option value="04">Nisan</option>
                 <option value="05">Mayıs</option>
                 <option value="06">Haziran</option>
+                <option value="07">Temmuz</option>
+                <option value="08">Ağustos</option>
+                <option value="09">Eylül</option>
+                <option value="10">Ekim</option>
+                <option value="11">Kasım</option>
+                <option value="12">Aralık</option>
             </select>
             <button class="btn btn-blue" onclick="loadReport()">Raporu Getir</button>
         </div>
@@ -240,6 +247,30 @@
         let activeReportIp = "", activeReportName = "";
         let currentTxtData = "", currentTxtFileName = "";
         let bannedIPs = [];
+
+        // XSS önleme yardımcıları
+        function escHtml(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function escJs(s) {
+            return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'').replace(/\n/g,'');
+        }
+
+        // Yıl seçeneklerini dinamik doldur
+        (function() {
+            const sel = document.getElementById('repYear');
+            const now = new Date().getFullYear();
+            for (let y = now - 1; y <= now + 1; y++) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.textContent = y;
+                if (y === now) opt.selected = true;
+                sel.appendChild(opt);
+            }
+            // Mevcut ayı seç
+            const curMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+            const mSel = document.getElementById('repMonth');
+            for (let o of mSel.options) { if (o.value === curMonth) { o.selected = true; break; } }
+        })();
 
         async function login() {
             try {
@@ -308,10 +339,10 @@
                     hasReq = true;
                     list.innerHTML += `
                 <div class="live-log" style="padding: 10px;">
-                    <b style="font-size: 14px;">${val.User}</b> <span style="color:#f1c40f">(${val.RefCode})</span> 
+                    <b style="font-size: 14px;">${escHtml(val.User)}</b> <span style="color:#f1c40f">(${escHtml(val.RefCode)})</span>
                     <div style="float:right;">
-                        <button class="btn btn-blue btn-action" onclick="approve('${child.key}','${val.User}', '${val.Token || ''}')">Onayla</button>
-                        <button class="btn btn-red btn-action" onclick="reject('${child.key}')">Reddet</button>
+                        <button class="btn btn-blue btn-action" onclick="approve('${escJs(child.key)}','${escJs(val.User)}', '${escJs(val.Token || '')}')">Onayla</button>
+                        <button class="btn btn-red btn-action" onclick="reject('${escJs(child.key)}')">Reddet</button>
                     </div>
                     <div style="clear:both;"></div>
                 </div>`;
@@ -355,25 +386,25 @@
                         let rootAliasBtn = "";
 
                         if (sessionCanLock) {
-                            if (u.RootAlias && u.RootAlias.trim() !== "") rootAliasDisplay = `<span class="root-alias">(${u.RootAlias})</span>`;
-                            rootAliasBtn = `<button class="btn btn-action" style="background:#8e44ad;color:white" onclick="editRootAlias('${u.ip}','${u.RootAlias || ''}')">🕵️ Gizli Ad</button>`;
+                            if (u.RootAlias && u.RootAlias.trim() !== "") rootAliasDisplay = `<span class="root-alias">(${escHtml(u.RootAlias)})</span>`;
+                            rootAliasBtn = `<button class="btn btn-action" style="background:#8e44ad;color:white" onclick="editRootAlias('${escJs(u.ip)}','${escJs(u.RootAlias || '')}')">🕵️ Gizli Ad</button>`;
                         }
 
                         return `
                             <tr>
                                 <td>
-                                    <strong>${u.UserName}</strong> ${rootAliasDisplay}
-                                    <span id="ecz_${u.ip}" class="eczane-badge">Eczane Aranıyor...</span>
+                                    <strong>${escHtml(u.UserName)}</strong> ${rootAliasDisplay}
+                                    <span id="ecz_${escHtml(u.ip)}" class="eczane-badge">Eczane Aranıyor...</span>
                                 </td>
-                                <td>${u.ip.replace(/_/g, '.')}</td>
+                                <td>${escHtml(u.ip.replace(/_/g, '.'))}</td>
                                 <td style="color:${u.Status === 'Active' ? '#3fb950' : '#f85149'}">${displayStatus}</td>
                                 <td>
                                     ${rootAliasBtn}
-                                    <button class="btn btn-blue btn-action" style="background:#58a6ff;color:black" onclick="editUserName('${u.ip}','${u.UserName}')">✏️ Düzenle</button>
-                                    <button class="btn btn-blue btn-action" onclick="toggleUser('${u.ip}','${u.Status}')">Durum</button>
-                                    ${sessionCanLock ? `<button class="btn btn-blue btn-action" style="background:#f1c40f;color:black" onclick="openReport('${u.ip}','${u.UserName}')">📊 Rapor</button>` : ''}
-                                    ${sessionCanLock ? `<button class="btn btn-red btn-action" style="background:darkred;" onclick="banUser('${u.ip}')">🚫 Banla</button>` : ''}
-                                    ${sessionCanLock ? `<button class="btn btn-red btn-action" onclick="deleteUser('${u.ip}')">🗑️ Sil</button>` : ''}
+                                    <button class="btn btn-blue btn-action" style="background:#58a6ff;color:black" onclick="editUserName('${escJs(u.ip)}','${escJs(u.UserName)}')">✏️ Düzenle</button>
+                                    <button class="btn btn-blue btn-action" onclick="toggleUser('${escJs(u.ip)}','${escJs(u.Status)}')">Durum</button>
+                                    ${sessionCanLock ? `<button class="btn btn-blue btn-action" style="background:#f1c40f;color:black" onclick="openReport('${escJs(u.ip)}','${escJs(u.UserName)}')">📊 Rapor</button>` : ''}
+                                    ${sessionCanLock ? `<button class="btn btn-red btn-action" style="background:darkred;" onclick="banUser('${escJs(u.ip)}')">🚫 Banla</button>` : ''}
+                                    ${sessionCanLock ? `<button class="btn btn-red btn-action" onclick="deleteUser('${escJs(u.ip)}')">🗑️ Sil</button>` : ''}
                                 </td>
                             </tr>`;
                     }).join('')}
@@ -387,12 +418,12 @@
                         let bHtml = `<table style="background: #2a0a0a; border-radius: 5px;">`;
                         bannedList.forEach(u => {
                             bHtml += `<tr>
-                            <td><strong>${u.UserName}</strong> <br><small style="color:#8b949e">Yönetici: ${u.OwnerAdmin}</small></td>
-                            <td>${u.ip.replace(/_/g, '.')}</td>
+                            <td><strong>${escHtml(u.UserName)}</strong> <br><small style="color:#8b949e">Yönetici: ${escHtml(u.OwnerAdmin)}</small></td>
+                            <td>${escHtml(u.ip.replace(/_/g, '.'))}</td>
                             <td style="color:var(--red); font-weight:bold;">YASAKLI</td>
                             <td>
-                                <button class="btn btn-blue btn-action" style="background:#238636;" onclick="unbanUser('${u.ip}')">🔄 Banı Kaldır</button>
-                                <button class="btn btn-red btn-action" onclick="deleteUser('${u.ip}')">🗑️ Sil</button>
+                                <button class="btn btn-blue btn-action" style="background:#238636;" onclick="unbanUser('${escJs(u.ip)}')">🔄 Banı Kaldır</button>
+                                <button class="btn btn-red btn-action" onclick="deleteUser('${escJs(u.ip)}')">🗑️ Sil</button>
                             </td>
                         </tr>`;
                         });
@@ -414,7 +445,7 @@
                     const area = document.getElementById("liveTraffic");
                     const newLog = document.createElement('div');
                     newLog.className = 'live-log';
-                    newLog.innerHTML = `<b>${ip.replace(/_/g, '.')}:</b> <span style="color:var(--green)">"${eczaneName}"</span> ${adet} adet <b>${data.İlaç}</b> bildirdi. <small style="color:#8b949e">(${data.Zaman})</small>`;
+                    newLog.innerHTML = `<b>${escHtml(ip.replace(/_/g, '.'))}:</b> <span style="color:var(--green)">"${escHtml(eczaneName)}"</span> ${escHtml(String(adet))} adet <b>${escHtml(data.İlaç)}</b> bildirdi. <small style="color:#8b949e">(${escHtml(data.Zaman)})</small>`;
                     area.prepend(newLog);
 
                     // Panel belleğinin şişmemesi için son 50 gösterimi tut
@@ -454,6 +485,12 @@
         function reject(ip) {
             if (confirm("Bu yetki isteğini reddetmek istediğinize emin misiniz? İstek silinecektir.")) {
                 db.ref("Requests/" + ip).remove();
+            }
+        }
+
+        function clearAllRequests() {
+            if (confirm("Tüm bekleyen yetki isteklerini silmek istediğinize emin misiniz?")) {
+                db.ref("Requests").remove();
             }
         }
 
@@ -523,9 +560,9 @@
                             currentTxtData += `[${log.GTIN}]-[${log.SN}]-[${log.Parti}]\r\n`;
 
                             detailHtml += `<tr>
-                            <td>${day}/${m}/${y}<br><small style="color:#8b949e">${log.Zaman}</small></td>
-                            <td>${log.Eczane || '-'}<br><small style="color:#8b949e">${log.GLN || ''}</small></td>
-                            <td><strong>${log.İlaç}</strong><br><small style="color:#8b949e">SKT: ${log.SKT || '-'}</small></td>
+                            <td>${escHtml(day)}/${escHtml(m)}/${escHtml(y)}<br><small style="color:#8b949e">${escHtml(log.Zaman)}</small></td>
+                            <td>${escHtml(log.Eczane || '-')}<br><small style="color:#8b949e">${escHtml(log.GLN || '')}</small></td>
+                            <td><strong>${escHtml(log.İlaç)}</strong><br><small style="color:#8b949e">SKT: ${escHtml(log.SKT || '-')}</small></td>
                         </tr>`;
                         }
                     });
@@ -541,7 +578,7 @@
                 <tr><th>İlaç Adı</th><th style="text-align:center">Bildirim Adedi</th></tr>`;
 
             for (let ilac in drugSummary) {
-                summaryHtml += `<tr><td>${ilac}</td><td style="text-align:center; color:var(--green); font-weight:bold; font-size:16px;">${drugSummary[ilac]} Adet</td></tr>`;
+                summaryHtml += `<tr><td>${escHtml(ilac)}</td><td style="text-align:center; color:var(--green); font-weight:bold; font-size:16px;">${drugSummary[ilac]} Adet</td></tr>`;
             }
             summaryHtml += `</table></div>`;
             detailHtml += `</table>`;
