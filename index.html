@@ -331,7 +331,7 @@
                 const data = snap.val();
 
                 if (data) {
-                    sessionAdmin = data.Name || e.split('@')[0];
+                    sessionAdmin = data.Name || data.name || e.split('@')[0];
                     sessionMyCode = data.MyCode;
                     sessionCanLock = data.CanLock;
 
